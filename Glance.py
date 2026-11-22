@@ -41,13 +41,13 @@ LostFrames: int = 10
 ShieldBlock: int = 22
 Joiner: str = "|"
 
-Ink = (15, 11, 11)
-Panel = (28, 21, 21)
-Line = (56, 43, 43)
-White = (248, 244, 244)
-Mute = (184, 169, 169)
-Pink = (154, 46, 255)
-Blue = (255, 123, 108)
+Ink = (36, 16, 10)
+Panel = (51, 26, 18)
+Line = (79, 48, 38)
+White = (255, 245, 242)
+Mute = (200, 173, 163)
+Accent = (255, 140, 91)
+Support = (255, 156, 183)
 Gold = (61, 200, 255)
 Green = (128, 222, 74)
 Red = (84, 84, 255)
@@ -57,7 +57,7 @@ StatusColours: dict[str, tuple[int, int, int]] = {
 	"Wrong": Red,
 	"Blank": Mute,
 	"Multiple": Gold,
-	"Read": Pink,
+	"Read": Accent,
 }
 
 Font = cv2.FONT_HERSHEY_DUPLEX
@@ -306,7 +306,7 @@ def Shield(Frame: np.ndarray, Quad: np.ndarray | None) -> np.ndarray:
 	Mask = np.zeros((Height, Width), dtype=np.uint8)
 	cv2.fillConvexPoly(Mask, np.rint(Quad).astype(np.int32), 255)
 	cv2.copyTo(Frame, Mask, Hidden)
-	cv2.polylines(Hidden, [np.rint(Quad).astype(np.int32)], True, Pink, max(2, Width // 480), cv2.LINE_AA)
+	cv2.polylines(Hidden, [np.rint(Quad).astype(np.int32)], True, Accent, max(2, Width // 480), cv2.LINE_AA)
 	return Hidden
 
 
@@ -330,7 +330,7 @@ def DrawMarks(View: np.ndarray, Sheet: Vision.Located, Current: Shown, Reading: 
 			if Reading.Scores[Index] >= Vision.MarkThreshold:
 				cv2.circle(View, Spot, Radius, Shade, Thick, cv2.LINE_AA)
 			elif Key is not None and Key[Row] == Layout.Options[Bubble] and Current.Status[Row] != "Correct":
-				cv2.circle(View, Spot, Radius, Blue, max(1, Thick - 1), cv2.LINE_AA)
+				cv2.circle(View, Spot, Radius, Support, max(1, Thick - 1), cv2.LINE_AA)
 
 	RollCentres = Vision.ToFrame(Vision.RollPoints, Sheet.Inverse)
 	RollEdge = Vision.RollPoints.copy()
@@ -341,7 +341,7 @@ def DrawMarks(View: np.ndarray, Sheet: Vision.Located, Current: Shown, Reading: 
 			continue
 		Centre = RollCentres[int(Value), Digit]
 		Radius = int(round(float(np.linalg.norm(RollEdges[int(Value), Digit] - Centre)) * 1.25))
-		cv2.circle(View, (int(round(Centre[0])), int(round(Centre[1]))), Radius, Pink, Thick, cv2.LINE_AA)
+		cv2.circle(View, (int(round(Centre[0])), int(round(Centre[1]))), Radius, Accent, Thick, cv2.LINE_AA)
 
 
 def DebugView(Flat: np.ndarray, Form: Layout.Form, Reading: Vision.Reading) -> np.ndarray:
@@ -355,10 +355,10 @@ def DebugView(Flat: np.ndarray, Form: Layout.Form, Reading: Vision.Reading) -> n
 		for Point, Score in zip(Points, Scores):
 			Spot = (int(Point[0]), int(Point[1]))
 			Marked = Score >= Vision.MarkThreshold
-			cv2.circle(View, Spot, Radius + 3, Pink if Marked else Blue, 3 if Marked else 1, cv2.LINE_AA)
+			cv2.circle(View, Spot, Radius + 3, Accent if Marked else Support, 3 if Marked else 1, cv2.LINE_AA)
 			if Score >= 0.05:
-				Label(View, f"{int(Score * 100)}", Spot[0], Spot[1] - Radius - 7, 0.55, Pink if Marked else Blue, 1, "Centre")
-	Label(View, f"FLATTENED SHEET  /  fill score per bubble, marked at {int(Vision.MarkThreshold * 100)} or more", 190, Layout.WarpHeight - 28, 0.7, Pink, 1)
+				Label(View, f"{int(Score * 100)}", Spot[0], Spot[1] - Radius - 7, 0.55, Accent if Marked else Support, 1, "Centre")
+	Label(View, f"FLATTENED SHEET  /  fill score per bubble, marked at {int(Vision.MarkThreshold * 100)} or more", 190, Layout.WarpHeight - 28, 0.7, Accent, 1)
 	return View
 
 
@@ -373,7 +373,7 @@ def Place(Canvas: np.ndarray, View: np.ndarray) -> None:
 
 
 def DrawStrip(Canvas: np.ndarray, Current: Shown | None) -> None:
-	Label(Canvas, "THIS SHEET", 16, 566, 0.5, Pink)
+	Label(Canvas, "THIS SHEET", 16, 566, 0.5, Accent)
 	if Current is None:
 		Label(Canvas, "Hold a sheet up to the camera. Keep all four corner squares in view.", 16, 640, 0.62, Mute)
 		return
@@ -390,13 +390,13 @@ def DrawStrip(Canvas: np.ndarray, Current: Shown | None) -> None:
 
 def DrawInsight(Canvas: np.ndarray, Form: Layout.Form | None, Stats: Insight | None) -> None:
 	if Form is None or Stats is None or Stats.Count == 0:
-		Label(Canvas, "CLASS INSIGHT", 16, 566, 0.5, Pink)
+		Label(Canvas, "CLASS INSIGHT", 16, 566, 0.5, Accent)
 		Label(Canvas, "No saved sheets for this test yet.", 16, 640, 0.62, Mute)
 		return
 	Base = 690
 	Tall = 92
 	if Form.Mode == "Marks" and Stats.Topics:
-		Label(Canvas, "CLASS INSIGHT  /  share of the marks the class earned in each topic", 16, 566, 0.5, Pink)
+		Label(Canvas, "CLASS INSIGHT  /  share of the marks the class earned in each topic", 16, 566, 0.5, Accent)
 		BarWidth = min(150, 928 // len(Stats.Topics))
 		for Index, (Topic, Share) in enumerate(Stats.Topics):
 			Left = 16 + Index * BarWidth
@@ -408,7 +408,7 @@ def DrawInsight(Canvas: np.ndarray, Form: Layout.Form | None, Stats: Insight | N
 		return
 
 	Title = "share of the marks the class earned on each question" if Form.Mode == "Marks" else "share of the class that got each question right, and the wrong option most of them picked"
-	Label(Canvas, f"CLASS INSIGHT  /  {Title}", 16, 566, 0.5, Pink)
+	Label(Canvas, f"CLASS INSIGHT  /  {Title}", 16, 566, 0.5, Accent)
 	BarWidth = 31
 	for Row, Share in enumerate(Stats.Shares):
 		Left = 16 + Row * BarWidth
@@ -424,18 +424,18 @@ def DrawPanel(Canvas: np.ndarray, Current: Shown | None, Keys: KeyBook, Stats: I
 	cv2.rectangle(Canvas, (PanelLeft, 0), (CanvasWidth, CanvasHeight), Panel, -1)
 	cv2.line(Canvas, (PanelLeft, 0), (PanelLeft, CanvasHeight), Line, 1)
 	Left = PanelLeft + 24
-	Label(Canvas, "GLANCE", Left, 52, 1.25, Pink, 2)
+	Label(Canvas, "GLANCE", Left, 52, 1.25, Accent, 2)
 	Label(Canvas, "bubble sheets, read by a webcam", Left, 76, 0.45, Mute)
 	cv2.line(Canvas, (Left, 96), (CanvasWidth - 24, 96), Line, 1)
 	Marks = Current is not None and Current.Form.Mode == "Marks"
 
 	if Current is None:
-		Label(Canvas, "SEARCHING", Left, 140, 0.8, Blue, 1)
+		Label(Canvas, "SEARCHING", Left, 140, 0.8, Support, 1)
 		Label(Canvas, "Show a sheet to begin.", Left, 168, 0.5, Mute)
 	else:
 		Entry = Keys.get(str(Current.TestId))
 		Name = Current.Form.Name if Marks else Entry["Name"] if Entry else "No answer key yet"
-		Label(Canvas, f"TEST {Current.TestId:02d}  /  {'MARKS' if Marks else 'ANSWERS'}", Left, 128, 0.55, Blue)
+		Label(Canvas, f"TEST {Current.TestId:02d}  /  {'MARKS' if Marks else 'ANSWERS'}", Left, 128, 0.55, Support)
 		Label(Canvas, Name[:26], Left, 152, 0.55, White)
 		Label(Canvas, "ROLL NO.", Left, 196, 0.45, Mute)
 		Label(Canvas, Current.Roll, Left, 240, 1.3, White, 2)
@@ -467,7 +467,7 @@ def DrawPanel(Canvas: np.ndarray, Current: Shown | None, Keys: KeyBook, Stats: I
 		Label(Canvas, "No sheets saved yet.", Left, 484, 0.5, Mute)
 
 	if Tester is not None:
-		Label(Canvas, "LIVE ACCURACY TEST", Left, 600, 0.45, Pink)
+		Label(Canvas, "LIVE ACCURACY TEST", Left, 600, 0.45, Accent)
 		Label(Canvas, Tester.Line(), Left, 622, 0.45, White)
 
 	Label(Canvas, "K set key   I insight   D debug   Q quit", Left, 662, 0.42, Mute)
@@ -482,7 +482,7 @@ def Describe(TestId: int, Form: Layout.Form, Reading: Vision.Reading, Keys: KeyB
 		Status = Vision.Grade(Reading.Answers, Entry["Key"])[1]
 	else:
 		Status = ["Blank" if Answer == Vision.Blank else "Multiple" if Answer == Vision.Multiple else "Read" for Answer in Reading.Answers]
-	return Shown(TestId, Form, Reading.Roll, Reading.Answers, Score, Out, Status, "READING", Blue)
+	return Shown(TestId, Form, Reading.Roll, Reading.Answers, Score, Out, Status, "READING", Support)
 
 
 def Compose(Frame: np.ndarray, Sheet: Vision.Located | None, Reading: Vision.Reading | None, Current: Shown | None, Keys: KeyBook, Stats: Insight | None, Progress: float, Tester: LiveTest | None, ShowInsight: bool, ShowDebug: bool, Milliseconds: float) -> np.ndarray:
@@ -518,7 +518,7 @@ def HandleLock(Current: Shown, Store: ResultStore, Keys: KeyBook, Book: Forms, T
 		Current.Note, Current.NoteColour = "ROLL NUMBER UNCLEAR", Gold
 		return
 	if Tester is not None:
-		Current.Note, Current.NoteColour = Tester.Record(Current.TestId, Current.Roll, Current.Answers), Pink
+		Current.Note, Current.NoteColour = Tester.Record(Current.TestId, Current.Roll, Current.Answers), Accent
 		Beep(1175)
 		return
 	if Current.Score is None:

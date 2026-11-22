@@ -7,208 +7,236 @@
 <meta name="description" content="Glance reads marks sheets and answer sheets with a laptop webcam and OpenCV. A VISION.EXE project for NEON SYNAPSE 2026.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@500;700;800&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ink:#0B0B0F; --panel:#15151C; --line:#2B2B38; --text:#F4F4F8; --mute:#A9A9B8;
-  --pink:#FF2E9A; --blue:#6C7BFF; --gold:#FFC83D; --ok:#4ADE80; --bad:#FF5454; --paper:#F6F5F1;
-  --display:'Funnel Display','Arial Black',system-ui,sans-serif; --body:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --bg:#EAF0FB; --ink:#0E1A3A; --mute:#525E7E; --accent:#2447F9; --second:#8F7BF7;
+  --good:#0FA883; --amber:#E89B00; --wrong:#E63E57; --paper:#FBFCFF;
+  --glass:rgba(255,255,255,.58); --solid:rgba(255,255,255,.9); --edge:rgba(255,255,255,.9); --hair:rgba(14,26,58,.12);
+  --lift:0 22px 54px -22px rgba(27,45,110,.34),0 2px 6px rgba(27,45,110,.06);
+  --raised:7px 7px 16px rgba(150,166,208,.5),-7px -7px 16px rgba(255,255,255,.95);
+  --pressed:inset 4px 4px 9px rgba(150,166,208,.55),inset -4px -4px 9px rgba(255,255,255,.95);
+  --display:'Bricolage Grotesque','Trebuchet MS',system-ui,sans-serif; --body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
   --code:ui-monospace,'Cascadia Code','SF Mono',Consolas,monospace;
-  color-scheme:dark;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--ink);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.6;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16.5px;line-height:1.6;overflow-x:hidden}
+.aurora{position:fixed;inset:-20vmax;z-index:-1;pointer-events:none;background:
+  radial-gradient(38vmax 38vmax at 22% 24%,rgba(64,224,190,.55),transparent 62%),
+  radial-gradient(42vmax 42vmax at 78% 18%,rgba(108,160,255,.6),transparent 62%),
+  radial-gradient(40vmax 40vmax at 70% 78%,rgba(170,140,255,.5),transparent 62%),
+  radial-gradient(30vmax 30vmax at 18% 82%,rgba(255,200,110,.45),transparent 62%);
+  animation:drift 26s ease-in-out infinite alternate}
+@keyframes drift{from{transform:translate3d(-3%,-2%,0) rotate(0deg)}to{transform:translate3d(3%,3%,0) rotate(8deg)}}
 img{max-width:100%;height:auto;display:block}
-a{color:var(--pink)}
-a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
-h1,h2,h3{font-family:var(--display);font-weight:800;line-height:1.05;margin:0;text-wrap:balance}
-h2{font-size:clamp(30px,5vw,56px);letter-spacing:-.5px}
-h3{font-size:20px}
+h1,h2,h3{font-family:var(--display);font-weight:800;line-height:1.04;margin:0;text-wrap:balance;letter-spacing:-.02em}
+h2{font-size:clamp(30px,5vw,56px)}
+h3{font-size:21px;letter-spacing:-.01em}
 p{margin:0;max-width:65ch}
-code{font-family:var(--code);font-size:.88em;color:var(--blue);overflow-wrap:anywhere}
+code{font-family:var(--code);font-size:.86em;color:var(--accent);overflow-wrap:anywhere}
 figure{margin:0}
 .mute{color:var(--mute)}
-.cut{clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
-.tag{display:flex;align-items:center;gap:12px;font-size:13px;font-weight:700;letter-spacing:3px;color:var(--pink);text-transform:uppercase}
-.tag b{font-family:var(--display);font-size:15px;color:var(--text)}
-.tag i{font-style:normal;color:var(--blue)}
+[hidden]{display:none !important}
 
-@keyframes arrive{from{opacity:0;filter:blur(14px);transform:translateY(34px)}to{opacity:1;filter:none;transform:none}}
+.glass,.cut,.card,.stat,.chart,.shot,.tw,.callout,.pipe{background:var(--glass);border:1px solid var(--edge);box-shadow:var(--lift),inset 0 1px 0 rgba(255,255,255,.95);-webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .glass,.cut,.card,.stat,.chart,.shot,.tw,.callout,.pipe{background:var(--solid)}
+}
+@media (prefers-reduced-transparency:reduce){
+  .glass,.cut,.card,.stat,.chart,.shot,.tw,.callout,.pipe{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}
+  .aurora{opacity:.35}
+}
+
+.tag{display:inline-flex;align-items:center;gap:12px;font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+.tag b{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--bg);box-shadow:var(--raised);font-family:var(--display);font-size:15px;letter-spacing:0;color:var(--accent)}
+.tag i{display:none}
+
+@keyframes arrive{from{opacity:0;filter:blur(14px);transform:translateY(34px) scale(.985)}to{opacity:1;filter:none;transform:none}}
 .rv.play{animation:arrive .9s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0ms)}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   .rv.play{animation:none}
-  .marquee .track{animation:none}
+  .aurora{animation:none}
   .beam{display:none}
+  .card,.stat,.btn{transition:none}
 }
 
 nav{position:fixed;top:14px;left:0;right:0;z-index:20;pointer-events:none}
 nav .outer{padding:0 14px}
-nav .bar{pointer-events:auto;max-width:1120px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(21,21,28,.86);border:1px solid var(--line);padding:8px 16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:17px;color:var(--text);text-decoration:none}
-.brand svg{width:26px;height:26px}
-nav ul{display:flex;gap:2px 16px;list-style:none;margin:0;padding:0;flex-wrap:wrap}
-nav ul a{color:var(--text);text-decoration:none;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:6px 0;display:inline-block}
-nav ul a:hover{color:var(--pink)}
+nav .bar{pointer-events:auto;max-width:1120px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px 14px;flex-wrap:wrap;padding:9px 20px 9px 12px;border-radius:999px;background:rgba(255,255,255,.66)}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:19px;color:var(--ink);text-decoration:none}
+.brand svg{width:34px;height:34px;border-radius:50%;box-shadow:0 6px 14px -4px rgba(36,71,249,.55)}
+nav ul{display:flex;gap:2px 6px;list-style:none;margin:0;padding:0;flex-wrap:wrap}
+nav ul a{color:var(--ink);text-decoration:none;font-size:14px;font-weight:600;padding:7px 12px;border-radius:999px;display:inline-block;transition:background .25s,color .25s}
+nav ul a:hover{background:#fff;color:var(--accent)}
 
-.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
-.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0 52%,rgba(255,46,154,.16) 52% 60%,transparent 60% 64%,rgba(108,123,255,.16) 64% 69%,transparent 69%);pointer-events:none}
-.hero .wrap{position:relative;display:grid;grid-template-columns:.95fr 1.05fr;gap:44px;align-items:center;padding-top:132px;padding-bottom:68px}
-.badge{display:inline-flex;background:var(--pink);color:#0B0B0F;font-weight:700;font-size:13px;letter-spacing:2px;padding:8px 16px;text-transform:uppercase}
-.hero h1{font-size:clamp(42px,6.6vw,88px);margin-top:20px;letter-spacing:-1.5px}
-.hero h1 span{color:var(--pink)}
-.hero .lead{margin-top:20px;color:var(--mute);font-size:18px}
-.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
-.btn{font-family:var(--display);font-weight:700;font-size:16px;text-decoration:none;padding:13px 22px;display:inline-block;border:0;cursor:pointer}
-.btn.solid{background:var(--pink);color:#0B0B0F}
-.btn.solid:hover{background:#fff}
-.btn.ghost{color:var(--text);background:transparent;box-shadow:inset 0 0 0 2px var(--blue)}
-.btn.ghost:hover{background:var(--blue);color:#0B0B0F}
+.hero{position:relative}
+.hero .wrap{position:relative;display:grid;grid-template-columns:.95fr 1.05fr;gap:44px;align-items:center;padding-top:138px;padding-bottom:64px}
+.badge{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.7);border:1px solid var(--edge);color:var(--ink);font-weight:700;font-size:13px;letter-spacing:.1em;padding:8px 16px 8px 10px;border-radius:999px;text-transform:uppercase;box-shadow:var(--lift)}
+.badge::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px rgba(15,168,131,.2)}
+.hero h1{font-size:clamp(42px,6.4vw,86px);margin-top:22px}
+.hero h1 span{background:linear-gradient(transparent 56%,rgba(64,224,190,.75) 56% 92%,transparent 92%);border-radius:.08em;padding:0 .08em;margin:0 -.08em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.hero .lead{margin-top:22px;color:var(--mute);font-size:18.5px}
+.cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:28px}
+.btn{font-family:var(--display);font-weight:700;font-size:16.5px;text-decoration:none;padding:14px 26px;display:inline-block;border:0;cursor:pointer;border-radius:999px;transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s}
+.btn.solid{background:var(--accent);color:#fff;box-shadow:0 14px 28px -10px rgba(36,71,249,.7),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn.solid:hover{transform:translateY(-3px);box-shadow:0 20px 34px -10px rgba(36,71,249,.75),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn.ghost{color:var(--ink);background:var(--bg);box-shadow:var(--raised)}
+.btn.ghost:hover{transform:translateY(-2px)}
+.btn.ghost:active{box-shadow:var(--pressed);transform:none}
 
-.cam{position:relative;border:2px solid var(--pink);background:var(--panel)}
-.cam .view{position:relative;padding:34px 26px 30px;background-size:cover;image-rendering:pixelated;overflow:hidden}
-.cam .rec{position:absolute;left:12px;top:9px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:8px;z-index:2}
-.cam .rec::before{content:"";width:8px;height:8px;background:var(--pink);border-radius:50%}
-.cam .hintline{position:absolute;right:12px;top:9px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);z-index:2}
-.sheet{position:relative;transform:perspective(1100px) rotateY(-9deg) rotateX(4deg) rotate(-1.5deg);outline:3px solid var(--pink);outline-offset:0;box-shadow:0 26px 60px rgba(0,0,0,.55)}
+.cut{border-radius:30px}
+.cam{position:relative;overflow:hidden}
+.cam .view{position:relative;padding:44px 26px 28px}
+.cam .rec{position:absolute;left:20px;top:14px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);display:flex;align-items:center;gap:8px;z-index:2}
+.cam .rec::before{content:"";width:8px;height:8px;background:var(--accent);border-radius:50%}
+.cam .hintline{position:absolute;right:20px;top:14px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);z-index:2}
+.sheet{position:relative;transform:perspective(1100px) rotateY(-8deg) rotateX(4deg) rotate(-1.2deg);border-radius:14px;overflow:hidden;box-shadow:0 30px 60px -24px rgba(27,45,110,.55),0 2px 0 rgba(255,255,255,.9) inset;transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+.cam:hover .sheet{transform:perspective(1100px) rotateY(-3deg) rotateX(2deg) rotate(-.4deg)}
 .sheet svg{display:block;width:100%;height:auto;background:var(--paper)}
 .sheet .bubble{cursor:pointer}
 .sheet .bubble:focus{outline:none}
-.sheet .bubble:focus-visible .hit{stroke:var(--gold);stroke-width:3}
-.sheet .bubble:hover .rim{stroke:#111}
-.beam{position:absolute;left:0;right:0;top:0;height:16%;background:linear-gradient(180deg,transparent,rgba(255,46,154,.42));border-bottom:2px solid var(--pink);pointer-events:none;opacity:0}
+.sheet .bubble:focus-visible .hit{stroke:var(--accent);stroke-width:2.5}
+.sheet .bubble:hover .rim{stroke:var(--accent)}
+.beam{position:absolute;left:0;right:0;top:0;height:16%;background:linear-gradient(180deg,transparent,rgba(36,71,249,.28));border-bottom:2px solid var(--accent);pointer-events:none;opacity:0}
 .beam.run{animation:sweep .7s ease-in-out}
 .beam.first{animation:sweep 1.3s .35s ease-in-out}
 @keyframes sweep{0%{transform:translateY(-100%);opacity:1}100%{transform:translateY(640%);opacity:1}}
-.readout{display:grid;grid-template-columns:auto 1fr auto;gap:14px 20px;align-items:center;padding:14px 18px;border-top:1px solid var(--line)}
-.readout .pts{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;color:var(--ok);font-variant-numeric:tabular-nums}
-.readout .pts small{font-size:12px;letter-spacing:2px;color:var(--mute);display:block;font-family:var(--body);font-weight:700;text-transform:uppercase;margin-bottom:4px}
-.readout button{font-family:var(--body);font-weight:700;font-size:13px;background:transparent;color:var(--text);border:1px solid var(--line);padding:9px 12px;cursor:pointer}
-.readout button:hover{border-color:var(--pink);color:var(--pink)}
-.legend{display:flex;gap:6px 16px;flex-wrap:wrap;padding:0 18px 14px;font-size:12.5px;color:var(--mute)}
-.topics{display:grid;gap:6px;min-width:0}
-.topics div{display:grid;grid-template-columns:78px 1fr 40px;gap:8px;align-items:center;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
-.topics i{display:block;height:9px;background:var(--ink);border:1px solid var(--line)}
-.topics i b{display:block;height:100%;background:var(--ok)}
-.duo{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
-.duo .shot{margin-top:0}
-[hidden]{display:none !important}
-.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;border:3px solid;margin-right:6px;vertical-align:-1px}
+.readout{display:grid;grid-template-columns:auto 1fr auto;gap:14px 22px;align-items:center;padding:16px 22px;border-top:1px solid var(--hair)}
+.readout .pts{font-family:var(--display);font-weight:800;font-size:46px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.readout .pts small{font-size:12px;letter-spacing:.14em;color:var(--mute);display:block;font-family:var(--body);font-weight:700;text-transform:uppercase;margin-bottom:4px}
+.topics{display:grid;gap:8px;min-width:0}
+.topics div{display:grid;grid-template-columns:80px 1fr 40px;gap:10px;align-items:center;font-size:13px;color:var(--mute);font-variant-numeric:tabular-nums}
+.topics i{display:block;height:12px;border-radius:999px;background:var(--bg);box-shadow:var(--pressed);overflow:hidden}
+.topics i b{display:block;height:100%;border-radius:999px;background:var(--good);transition:width .5s cubic-bezier(.2,.7,.2,1),background .3s}
+.readout button,.slider button{font-family:var(--body);font-weight:700;font-size:13.5px;background:var(--bg);color:var(--ink);border:0;padding:11px 16px;cursor:pointer;border-radius:999px;box-shadow:var(--raised);transition:box-shadow .2s}
+.readout button:active,.slider button:active{box-shadow:var(--pressed)}
+.legend{display:flex;gap:6px 18px;flex-wrap:wrap;padding:0 22px 18px;font-size:13px;color:var(--mute)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:3px solid;margin-right:6px;vertical-align:-1px}
 
-.marquee{overflow:hidden;border-bottom:1px solid var(--line);background:var(--panel)}
-.marquee .track{display:flex;gap:44px;width:max-content;padding:16px 0;animation:slide 40s linear infinite;font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:2px;text-transform:uppercase;white-space:nowrap}
-.marquee span::after{content:"◆";margin-left:44px;color:var(--pink);font-size:12px;vertical-align:middle}
-@keyframes slide{to{transform:translateX(-50%)}}
+.facts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:6px 20px 0;max-width:1160px;margin:0 auto}
+.facts span{background:rgba(255,255,255,.62);border:1px solid var(--edge);border-radius:999px;padding:9px 18px;font-weight:600;font-size:14.5px;box-shadow:0 8px 20px -14px rgba(27,45,110,.5)}
 
-section{padding:96px 0;border-bottom:1px solid var(--line)}
-.head{display:flex;flex-direction:column;gap:14px;margin-bottom:40px}
-.head p{color:var(--mute);font-size:17px}
-.manifesto{font-family:var(--display);font-weight:700;font-size:clamp(24px,3.6vw,42px);line-height:1.2;max-width:min(100%,24em)}
-.manifesto em{font-style:normal;color:var(--pink)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:44px}
-.stat{background:var(--panel);padding:22px 18px;border-left:4px solid var(--pink)}
-.stat:nth-child(even){border-left-color:var(--blue)}
-.stat b{font-family:var(--display);font-size:40px;display:block;line-height:1.1;font-variant-numeric:tabular-nums}
-.stat span{color:var(--mute);font-size:13px;display:block;margin-top:4px}
+section{padding:92px 0}
+.head{display:flex;flex-direction:column;gap:16px;margin-bottom:40px;align-items:flex-start}
+.head p{color:var(--mute);font-size:17.5px}
+.manifesto{font-family:var(--display);font-weight:700;font-size:clamp(25px,3.7vw,44px);line-height:1.16;letter-spacing:-.02em;max-width:min(100%,23em)}
+.manifesto em{font-style:normal;background:linear-gradient(transparent 58%,rgba(255,200,110,.85) 58% 92%,transparent 92%);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:44px}
+.stat{padding:24px 22px;border-radius:26px;transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+.stat:hover,.card:hover{transform:translateY(-5px)}
+.stat b{font-family:var(--display);font-size:44px;display:block;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:-.02em}
+.stat:nth-child(even) b{color:var(--ink)}
+.stat span{color:var(--mute);font-size:14px;display:block;margin-top:6px}
 
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-.card{background:var(--panel);padding:20px;display:grid;gap:8px;align-content:start}
-.card p{color:var(--mute);font-size:15px}
-.card .k{font-size:11px;letter-spacing:2px;color:var(--blue);text-transform:uppercase;font-weight:700}
-.big{font-family:var(--display);font-weight:800;font-size:46px;line-height:1;color:var(--pink)}
-.card:nth-child(even) .big{color:var(--blue)}
-.shot{background:var(--panel);border:1px solid var(--line);margin-top:16px}
-.shot img{width:100%}
-.shot figcaption{font-size:13px;color:var(--mute);padding:10px 12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.card{padding:24px;display:grid;gap:10px;align-content:start;border-radius:26px;transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+.card.cut{border-radius:30px}
+.card p{color:var(--mute);font-size:15.5px}
+.card .k{font-size:12px;letter-spacing:.14em;color:var(--accent);text-transform:uppercase;font-weight:700}
+.big{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;background:var(--bg);box-shadow:var(--raised);font-family:var(--display);font-weight:800;font-size:26px;line-height:1;color:var(--accent);margin-bottom:6px}
+.shot{margin-top:18px;border-radius:28px;padding:10px;overflow:hidden}
+.shot img{width:100%;border-radius:20px}
+.shot figcaption{font-size:13.5px;color:var(--mute);padding:10px 10px 4px}
 .sub{margin-top:56px;display:grid;gap:20px}
-.sub h3{font-size:26px}
+.sub>*{min-width:0}
+.sub h3{font-size:27px}
+.duo{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:18px}
+.duo .shot{margin-top:0}
 
-.pipe{display:grid;gap:0;border-top:1px solid var(--line)}
-.step{display:grid;grid-template-columns:64px 1fr 1.05fr;gap:10px 28px;padding:30px 0;border-bottom:1px solid var(--line);align-items:start}
-.step .no{font-family:var(--display);font-weight:800;font-size:40px;line-height:1;color:var(--pink)}
-.step:nth-child(even) .no{color:var(--blue)}
+.pipe{display:grid;gap:0;border-radius:32px;padding:6px 26px}
+.step{display:grid;grid-template-columns:64px 1fr 1.05fr;gap:10px 28px;padding:30px 0;border-bottom:1px solid var(--hair);align-items:start}
+.step:last-child{border-bottom:0}
+.step>*{min-width:0}
+.step .no{display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:var(--bg);box-shadow:var(--raised);font-family:var(--display);font-weight:800;font-size:24px;line-height:1;color:var(--accent)}
 .step .say{display:grid;gap:10px}
-.step .say p{color:var(--mute);font-size:15.5px}
-.step .say h3{font-size:24px}
-.step .calls{display:flex;gap:6px;flex-wrap:wrap}
-.step .calls code{background:var(--panel);border:1px solid var(--line);padding:4px 8px;font-size:12.5px}
-.step figure{border:1px solid var(--line);background:var(--panel)}
-.step figcaption{font-size:12.5px;color:var(--mute);padding:8px 10px}
-.rule{width:100%;border-collapse:collapse;font-size:14px;background:var(--panel);border:1px solid var(--line)}
-.rule td,.rule th{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left}
-.rule th{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mute);font-weight:700}
+.step .say p{color:var(--mute);font-size:16px}
+.step .say h3{font-size:25px}
+.step .calls{display:flex;gap:8px;flex-wrap:wrap}
+.step .calls code{background:var(--bg);box-shadow:var(--pressed);border-radius:999px;padding:5px 12px;font-size:12.5px}
+.step figure{border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 16px 34px -20px rgba(27,45,110,.6)}
+.step figcaption{font-size:13px;color:var(--mute);padding:9px 12px}
+.rule{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px;background:rgba(255,255,255,.75);border-radius:20px;overflow:hidden;box-shadow:0 16px 34px -20px rgba(27,45,110,.6)}
+.rule td,.rule th{padding:11px 14px;border-bottom:1px solid var(--hair);text-align:left}
+.rule th{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:700}
 .rule tr:last-child td{border-bottom:0}
 .rule td:first-child{font-family:var(--code);font-variant-numeric:tabular-nums;white-space:nowrap}
-.rule .hit{color:var(--pink);font-weight:700}
+.rule .hit{color:var(--accent);font-weight:700}
 .rule td:last-child{font-weight:700}
 
-.tw{overflow-x:auto;border:1px solid var(--line)}
-table.data{width:100%;border-collapse:collapse;font-size:14.5px;min-width:560px}
-table.data th,table.data td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
-table.data th{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mute);font-weight:700;background:var(--panel)}
+.tw{overflow-x:auto;border-radius:26px}
+table.data{width:100%;border-collapse:collapse;font-size:15px;min-width:560px}
+table.data th,table.data td{text-align:left;padding:12px 18px;border-bottom:1px solid var(--hair);vertical-align:top}
+table.data th{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:700}
 table.data tr:last-child td{border-bottom:0}
 table.data td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
-table.data tr.group td{background:var(--panel);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700;padding:8px 14px}
+table.data tr.group td{background:rgba(36,71,249,.07);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;padding:9px 18px}
 
-.chart{background:var(--panel);border:1px solid var(--line);padding:18px}
+.chart{padding:24px;border-radius:28px}
 .chart svg{display:block;width:100%;height:auto}
 .chart .axis{font-family:var(--body);font-size:11px;fill:var(--mute)}
-.chart h3{font-size:20px;margin-bottom:4px}
-.chart .note{font-size:13.5px;color:var(--mute);max-width:none}
-.keyrow{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin:10px 0 6px}
-.keyrow i{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px}
-.slider{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;margin-top:12px}
-.slider label{font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--mute)}
-.slider input{width:100%;accent-color:var(--pink)}
-.slider button{font-family:var(--body);font-weight:700;font-size:13px;background:transparent;color:var(--text);border:1px solid var(--line);padding:8px 12px;cursor:pointer}
-.slider button:hover{border-color:var(--pink);color:var(--pink)}
-.verdict{margin-top:12px;font-size:15px;max-width:none}
-.verdict b{font-family:var(--display);font-size:19px;font-variant-numeric:tabular-nums}
-.verdict .m{color:var(--pink)}
-.verdict .e{color:var(--blue)}
-.callout{border-left:4px solid var(--gold);background:var(--panel);padding:18px 20px;margin-top:16px;display:grid;gap:8px}
+.chart h3{font-size:22px;margin-bottom:6px}
+.chart .note{font-size:14.5px;color:var(--mute);max-width:none}
+.chart .stat{background:rgba(255,255,255,.6);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:20px}
+.keyrow{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:13.5px;color:var(--mute);margin:12px 0 8px}
+.keyrow i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:6px;vertical-align:-1px}
+.slider{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;margin-top:14px}
+.slider label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--mute)}
+.slider input{width:100%;accent-color:var(--accent)}
+.verdict{margin-top:14px;font-size:15.5px;max-width:none}
+.verdict b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}
+.verdict .m{color:var(--accent)}
+.verdict .e{color:var(--second)}
+.callout{border-radius:26px;padding:22px 24px 22px 30px;margin-top:18px;display:grid;gap:8px;position:relative;overflow:hidden}
+.callout::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;background:var(--amber)}
 .callout p{color:var(--mute);max-width:75ch}
-.callout b{color:var(--text)}
-ul.plain{margin:0;padding-left:20px;display:grid;gap:8px;color:var(--mute);max-width:65ch}
-ul.plain b{color:var(--text)}
+.callout b{color:var(--ink)}
+ul.plain{margin:0;padding-left:20px;display:grid;gap:9px;color:var(--mute);max-width:65ch}
+ul.plain b{color:var(--ink)}
 
-.people{display:grid;grid-template-columns:repeat(2,1fr);gap:0 40px;border-top:1px solid var(--line)}
-.person{display:grid;gap:6px;padding:22px 0;border-bottom:1px solid var(--line)}
-.person h3{font-size:28px}
-.person .role{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700}
-footer{padding:34px 0;color:var(--mute);font-size:14px}
+.people{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.person{display:grid;gap:8px;padding:26px;border-radius:28px;background:var(--bg);box-shadow:var(--raised)}
+.person h3{font-size:30px}
+.person .role{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+footer{padding:30px 0 44px;color:var(--mute);font-size:14.5px}
 footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 
 @media (max-width:900px){
   .hero .wrap{grid-template-columns:1fr;padding-top:150px}
   .stats{grid-template-columns:repeat(2,1fr)}
   .grid3{grid-template-columns:1fr}
-  .step{grid-template-columns:48px 1fr}
+  .step{grid-template-columns:54px 1fr}
   .step figure,.step .rule{grid-column:1 / -1}
   .people{grid-template-columns:1fr}
-  section{padding:68px 0}
+  section{padding:64px 0}
+  .glass,.cut,.card,.stat,.chart,.shot,.tw,.callout,.pipe{-webkit-backdrop-filter:blur(12px) saturate(160%);backdrop-filter:blur(12px) saturate(160%)}
 }
 @media (max-width:560px){
   .grid2{grid-template-columns:1fr}
   .stats{grid-template-columns:1fr}
+  .duo{grid-template-columns:1fr}
   .readout{grid-template-columns:1fr auto}
   .topics{grid-column:1 / -1;order:3}
-  .duo{grid-template-columns:1fr}
-  .cam .view{padding:32px 12px 20px}
+  .cam .view{padding:40px 12px 18px}
   .cam .hintline{display:none}
-  nav ul{gap:0 12px}
-  nav ul a{font-size:12px}
+  .pipe{padding:4px 16px}
+  nav .bar{border-radius:26px}
+  nav ul a{font-size:13px;padding:6px 9px}
 }
 </style>
 </head>
 <body>
+<div class="aurora" aria-hidden="true"></div>
 
 <nav aria-label="Main">
   <div class="outer"><div class="bar cut">
-    <a class="brand" href="#top"><svg viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" fill="#FF2E9A"/><circle cx="13" cy="13" r="7" fill="none" stroke="#0B0B0F" stroke-width="3"/><circle cx="13" cy="13" r="3" fill="#0B0B0F"/></svg>Glance</a>
+    <a class="brand" href="#top"><svg viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" fill="#2447F9"/><circle cx="13" cy="13" r="6.5" fill="none" stroke="#fff" stroke-width="2.6"/><circle cx="13" cy="13" r="2.6" fill="#fff"/></svg>Glance</a>
     <ul>
       <li><a href="#problem">Problem</a></li>
       <li><a href="#solution">Solution</a></li>
@@ -246,18 +274,17 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
         <button type="button" id="DemoReset">Reset sheet</button>
       </div>
       <div class="legend">
-        <span><i style="border-color:var(--pink)"></i>Marks read</span>
-        <span><i style="border-color:var(--gold)"></i>Two marks in one row, refused</span>
+        <span><i style="border-color:var(--good)"></i>Marks read</span>
+        <span><i style="border-color:var(--amber)"></i>Two marks in one row, refused</span>
         <span>Bars show the share of marks earned in each topic</span>
       </div>
     </div>
   </div>
 </header>
 
-<div class="marquee" aria-hidden="true"><div class="track">
-  <span>Marks entered once</span><span>Totals at the desk</span><span>Topic-wise class report</span><span>ArUco markers</span><span>findHomography</span><span>warpPerspective</span><span>No trained model</span><span>No frames saved</span>
-  <span>Marks entered once</span><span>Totals at the desk</span><span>Topic-wise class report</span><span>ArUco markers</span><span>findHomography</span><span>warpPerspective</span><span>No trained model</span><span>No frames saved</span>
-</div></div>
+<div class="facts rv">
+  <span>Marks entered once</span><span>Totals at the teacher's desk</span><span>Topic-wise class report</span><span>No trained model</span><span>No camera frames saved</span>
+</div>
 
 <section id="problem">
   <div class="wrap">
@@ -352,7 +379,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
       <div class="chart rv">
         <h3>Not every marker survives a blurry webcam</h3>
         <p class="note">OpenCV's dictionary has 50 markers. We blurred, shrank and darkened each one <span id="MarkerTrials">60</span> times and counted how often it was still found. Marker 0, the obvious first choice, was found only <b id="MarkerZero">67%</b> of the time. Glance uses the markers in pink.</p>
-        <div class="keyrow"><span><i style="background:var(--pink)"></i>Used on the sheet</span><span><i style="background:var(--line)"></i>Not used</span></div>
+        <div class="keyrow"><span><i style="background:var(--accent)"></i>Used on the sheet</span><span><i style="background:var(--hair)"></i>Not used</span></div>
         <svg id="MarkerChart" viewBox="0 0 800 200" role="img" aria-label="Bar chart of detection rate under blur for the 50 ArUco markers. The markers used by Glance all score near 100 percent; marker 0 and a few others score much lower."></svg>
       </div>
     </div>
@@ -396,7 +423,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
       <div class="chart rv">
         <h3>Why the line sits at 0.28</h3>
         <p class="note">Every bubble in the test, placed by its fill score. Unmarked bubbles, including stray dots and rubbed-out marks, stay on the left. Marked ones stay on the right. The line sits in the gap between the two groups, clear of the darkest rubbed-out mark. Drag it to see what a different threshold would cost.</p>
-        <div class="keyrow"><span><i style="background:var(--blue)"></i>Unmarked bubbles</span><span><i style="background:var(--pink)"></i>Marked bubbles</span><span>Height is on a log scale: each grid line is 10 times the one below</span></div>
+        <div class="keyrow"><span><i style="background:var(--second)"></i>Unmarked bubbles</span><span><i style="background:var(--accent)"></i>Marked bubbles</span><span>Height is on a log scale: each grid line is 10 times the one below</span></div>
         <svg id="FillChart" viewBox="0 0 800 280" role="img" aria-label="Histogram of fill scores. Unmarked bubbles cluster below 0.22 and marked bubbles lie above 0.3, with a gap between them where the threshold sits."></svg>
         <div class="slider">
           <label for="ThresholdInput">Threshold</label>
@@ -530,29 +557,37 @@ const DemoBubbles = [];
 const DemoBars = {};
 
 function DrawMarker(X, Y, Bits) {
-  Make("rect", { x: X, y: Y, width: 36, height: 36, fill: "#111" }, DemoSheet);
+  Make("rect", { x: X, y: Y, width: 36, height: 36, rx: 3, fill: "#0E1A3A" }, DemoSheet);
   Bits.forEach((Row, RowIndex) => {
     [...Row].forEach((Bit, ColumnIndex) => {
-      if (Bit === "1") Make("rect", { x: X + 6 + ColumnIndex * 6, y: Y + 6 + RowIndex * 6, width: 6.2, height: 6.2, fill: "#F6F5F1" }, DemoSheet);
+      if (Bit === "1") Make("rect", { x: X + 6 + ColumnIndex * 6, y: Y + 6 + RowIndex * 6, width: 6.2, height: 6.2, fill: "#FBFCFF" }, DemoSheet);
     });
   });
 }
 
 function BuildDemo() {
+  const Defs = Make("defs", {}, DemoSheet);
+  const Well = Make("radialGradient", { id: "Well", cx: "32%", cy: "30%", r: "80%" }, Defs);
+  Make("stop", { offset: "0%", "stop-color": "#C9D3EA" }, Well);
+  Make("stop", { offset: "70%", "stop-color": "#F2F5FC" }, Well);
+  Make("stop", { offset: "100%", "stop-color": "#FFFFFF" }, Well);
+  const Pen = Make("radialGradient", { id: "Pen", cx: "34%", cy: "30%", r: "75%" }, Defs);
+  Make("stop", { offset: "0%", "stop-color": "#5B7BFF" }, Pen);
+  Make("stop", { offset: "100%", "stop-color": "#1A2FB8" }, Pen);
   DrawMarker(12, 12, ["0110", "0010", "1010", "1101"]);
   DrawMarker(372, 12, ["1011", "1001", "0111", "0100"]);
   DrawMarker(12, 248, ["1100", "0101", "0110", "1011"]);
   DrawMarker(372, 248, ["0111", "0101", "0101", "1100"]);
-  const Title = Make("text", { x: 62, y: 34, "font-family": "Funnel Display, Arial Black, sans-serif", "font-weight": 800, "font-size": 21, fill: "#111" }, DemoSheet);
+  const Title = Make("text", { x: 62, y: 34, "font-family": "Bricolage Grotesque, Trebuchet MS, sans-serif", "font-weight": 800, "font-size": 21, fill: "#0E1A3A" }, DemoSheet);
   Title.textContent = "GLANCE";
-  const Subtitle = Make("text", { x: 62, y: 47, "font-family": "Sora, sans-serif", "font-weight": 700, "font-size": 7.5, fill: "#777", "letter-spacing": 1 }, DemoSheet);
+  const Subtitle = Make("text", { x: 62, y: 47, "font-family": "Figtree, sans-serif", "font-weight": 700, "font-size": 7.5, fill: "#6B7696", "letter-spacing": 1 }, DemoSheet);
   Subtitle.textContent = "MARKS SHEET / DEMO";
-  const Hold = Make("text", { x: 210, y: 276, "text-anchor": "middle", "font-family": "Sora, sans-serif", "font-weight": 700, "font-size": 7.5, fill: "#888", "letter-spacing": 1 }, DemoSheet);
+  const Hold = Make("text", { x: 210, y: 276, "text-anchor": "middle", "font-family": "Figtree, sans-serif", "font-weight": 700, "font-size": 7.5, fill: "#6B7696", "letter-spacing": 1 }, DemoSheet);
   Hold.textContent = "HOLD THE SHEET HERE";
 
   [58, 232].forEach((Left) => {
     for (let Mark = 0; Mark <= DemoHighest; Mark++) {
-      const Head = Make("text", { x: Left + 32 + Mark * 23, y: 72, "text-anchor": "middle", "font-family": "Sora, sans-serif", "font-weight": 700, "font-size": 9, fill: "#777" }, DemoSheet);
+      const Head = Make("text", { x: Left + 32 + Mark * 23, y: 72, "text-anchor": "middle", "font-family": "Figtree, sans-serif", "font-weight": 700, "font-size": 9, fill: "#6B7696" }, DemoSheet);
       Head.textContent = Mark;
     }
   });
@@ -560,7 +595,7 @@ function BuildDemo() {
   for (let Question = 0; Question < 10; Question++) {
     const Left = Question < 5 ? 58 : 232;
     const Y = 94 + (Question % 5) * 32;
-    const Number = Make("text", { x: Left + 14, y: Y + 3.5, "text-anchor": "end", "font-family": "Sora, sans-serif", "font-weight": 700, "font-size": 10, fill: "#111" }, DemoSheet);
+    const Number = Make("text", { x: Left + 14, y: Y + 3.5, "text-anchor": "end", "font-family": "Figtree, sans-serif", "font-weight": 700, "font-size": 10, fill: "#0E1A3A" }, DemoSheet);
     Number.textContent = Question + 1;
     const Row = [];
     for (let Mark = 0; Mark <= DemoHighest; Mark++) {
@@ -568,8 +603,8 @@ function BuildDemo() {
       const Group = Make("g", { class: "bubble", role: "checkbox", tabindex: 0, "aria-label": `Question ${Question + 1}, ${Mark} marks` }, DemoSheet);
       Make("circle", { class: "hit", cx: X, cy: Y, r: 11.5, fill: "transparent" }, Group);
       const Ring = Make("circle", { cx: X, cy: Y, r: 10.4, fill: "none", "stroke-width": 2.6 }, Group);
-      Make("circle", { class: "rim", cx: X, cy: Y, r: 7.4, fill: "none", stroke: "#8A8A8A", "stroke-width": 1 }, Group);
-      const Fill = Make("circle", { cx: X, cy: Y, r: 6.5, fill: "#26262C" }, Group);
+      Make("circle", { class: "rim", cx: X, cy: Y, r: 7.6, fill: "url(#Well)", stroke: "#AEB9D6", "stroke-width": 1 }, Group);
+      const Fill = Make("circle", { cx: X, cy: Y, r: 6.3, fill: "url(#Pen)" }, Group);
       const Toggle = () => {
         const Marks = DemoMarks[Question];
         if (Marks.has(Mark)) Marks.delete(Mark);
@@ -619,14 +654,14 @@ function GradeDemo() {
       const Marked = Marks.has(Mark);
       Bubble.Fill.setAttribute("opacity", Marked ? 1 : 0);
       Bubble.Group.setAttribute("aria-checked", Marked ? "true" : "false");
-      Bubble.Ring.setAttribute("stroke", !Marked ? "none" : Clash ? "#E0A100" : "#E0247F");
+      Bubble.Ring.setAttribute("stroke", !Marked ? "none" : Clash ? "#E89B00" : "#0FA883");
     });
   });
   Write("DemoScore", `${Total}/${DemoBubbles.length * DemoHighest}`);
   for (const Topic in DemoBars) {
     const Share = Earned[Topic] / Possible[Topic];
     DemoBars[Topic].Bar.style.width = `${100 * Share}%`;
-    DemoBars[Topic].Bar.style.background = Share >= 0.7 ? "#4ADE80" : Share >= 0.5 ? "#FFC83D" : "#FF5454";
+    DemoBars[Topic].Bar.style.background = Share >= 0.7 ? "#0FA883" : Share >= 0.5 ? "#E89B00" : "#E63E57";
     DemoBars[Topic].Value.textContent = `${Math.round(100 * Share)}%`;
   }
 }
@@ -636,27 +671,6 @@ function Sweep() {
   Beam.classList.remove("first", "run");
   void Beam.offsetWidth;
   Beam.classList.add("run");
-}
-
-function PaintBackdrop() {
-  const Canvas = document.createElement("canvas");
-  Canvas.width = 30;
-  Canvas.height = 22;
-  const Context = Canvas.getContext("2d");
-  let Seed = 263;
-  const Next = () => {
-    Seed = (Seed * 1664525 + 1013904223) % 4294967296;
-    return Seed / 4294967296;
-  };
-  for (let Y = 0; Y < Canvas.height; Y++) {
-    for (let X = 0; X < Canvas.width; X++) {
-      const Glow = Math.max(0, 1 - Math.hypot(X - 6, Y - 16) / 13) * 44 + Math.max(0, 1 - Math.hypot(X - 25, Y - 4) / 11) * 34;
-      const Shade = 26 + Next() * 12;
-      Context.fillStyle = `rgb(${Shade + Glow * 0.9},${Shade - 4 + Glow * 0.25},${Shade + 10 + Glow})`;
-      Context.fillRect(X, Y, 1, 1);
-    }
-  }
-  document.getElementById("DemoView").style.backgroundImage = `url(${Canvas.toDataURL()})`;
 }
 
 function FillResults() {
@@ -722,7 +736,7 @@ function DrawFillChart() {
 
   for (let Decade = 0; Decade <= Decades; Decade++) {
     const Y = Base - Height(10 ** Decade);
-    Make("line", { x1: Left, x2: Right, y1: Y, y2: Y, stroke: "#2B2B38", "stroke-width": 1 }, Chart);
+    Make("line", { x1: Left, x2: Right, y1: Y, y2: Y, stroke: "rgba(14,26,58,.12)", "stroke-width": 1 }, Chart);
     const Tick = Make("text", { class: "axis", x: Left - 8, y: Y + 4, "text-anchor": "end" }, Chart);
     Tick.textContent = Count(10 ** Decade);
   }
@@ -737,11 +751,11 @@ function DrawFillChart() {
     const X = Left + Bin * Step;
     const Empty = Height(Sim.EmptyHistogram[Bin]);
     const Marked = Height(Sim.MarkedHistogram[Bin]);
-    if (Empty > 0) Make("rect", { x: X + 1, y: Base - Empty, width: Step - 2, height: Empty, fill: "#6C7BFF" }, Chart);
-    if (Marked > 0) Make("rect", { x: X + 1, y: Base - Marked, width: Step - 2, height: Marked, fill: "#FF2E9A", opacity: Empty > 0 ? 0.85 : 1 }, Chart);
+    if (Empty > 0) Make("rect", { x: X + 1, y: Base - Empty, width: Step - 2, height: Empty, fill: "#8F7BF7", rx: 2 }, Chart);
+    if (Marked > 0) Make("rect", { x: X + 1, y: Base - Marked, width: Step - 2, height: Marked, fill: "#2447F9", rx: 2, opacity: Empty > 0 ? 0.85 : 1 }, Chart);
   }
-  Make("line", { x1: Left, x2: Right, y1: Base, y2: Base, stroke: "#A9A9B8", "stroke-width": 1 }, Chart);
-  const Needle = Make("line", { y1: Top - 6, y2: Base + 4, stroke: "#FFC83D", "stroke-width": 2.5 }, Chart);
+  Make("line", { x1: Left, x2: Right, y1: Base, y2: Base, stroke: "rgba(14,26,58,.4)", "stroke-width": 1 }, Chart);
+  const Needle = Make("line", { y1: Top - 6, y2: Base + 4, stroke: "#E89B00", "stroke-width": 3, "stroke-linecap": "round" }, Chart);
 
   const Input = document.getElementById("ThresholdInput");
   const TotalMarked = Sim.MarkedHistogram.reduce((Sum, Value) => Sum + Value, 0);
@@ -771,7 +785,7 @@ function DrawMarkerChart() {
   const Step = (Right - Left) / 50;
   [0, 50, 100].forEach((Percent) => {
     const Y = Base - (Percent / 100) * (Base - Top);
-    Make("line", { x1: Left, x2: Right, y1: Y, y2: Y, stroke: "#2B2B38", "stroke-width": 1 }, Chart);
+    Make("line", { x1: Left, x2: Right, y1: Y, y2: Y, stroke: "rgba(14,26,58,.12)", "stroke-width": 1 }, Chart);
     const Tick = Make("text", { class: "axis", x: Left - 8, y: Y + 4, "text-anchor": "end" }, Chart);
     Tick.textContent = `${Percent}%`;
   });
@@ -779,7 +793,7 @@ function DrawMarkerChart() {
   for (let Id = 0; Id < 50; Id++) {
     const Rate = Markers.Rates[String(Id)];
     const Tall = Math.max(Rate * (Base - Top), 1);
-    Make("rect", { x: Left + Id * Step + 2, y: Base - Tall, width: Step - 4, height: Tall, fill: Used.has(Id) ? "#FF2E9A" : "#4A4A5E" }, Chart);
+    Make("rect", { x: Left + Id * Step + 2, y: Base - Tall, width: Step - 4, height: Tall, fill: Used.has(Id) ? "#2447F9" : "rgba(14,26,58,.2)", rx: 2 }, Chart);
     if (Id % 5 === 0) {
       const Tick = Make("text", { class: "axis", x: Left + Id * Step + Step / 2, y: Base + 16, "text-anchor": "middle" }, Chart);
       Tick.textContent = Id;
@@ -819,7 +833,6 @@ function WatchScroll() {
 
 BuildDemo();
 GradeDemo();
-PaintBackdrop();
 FillResults();
 DrawFillChart();
 DrawMarkerChart();
