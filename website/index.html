@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Glance Marks Reader</title>
+<meta name="description" content="Glance reads marks sheets and answer sheets with a laptop webcam and OpenCV. A VISION.EXE project for NEON SYNAPSE 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@500;700;800&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0B0B0F; --panel:#15151C; --line:#2B2B38; --text:#F4F4F8; --mute:#A9A9B8;
+  --pink:#FF2E9A; --blue:#6C7BFF; --gold:#FFC83D; --ok:#4ADE80; --bad:#FF5454; --paper:#F6F5F1;
+  --display:'Funnel Display','Arial Black',system-ui,sans-serif; --body:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --code:ui-monospace,'Cascadia Code','SF Mono',Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ink);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.6;overflow-x:hidden}
+img{max-width:100%;height:auto;display:block}
+a{color:var(--pink)}
+a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:var(--display);font-weight:800;line-height:1.05;margin:0;text-wrap:balance}
+h2{font-size:clamp(30px,5vw,56px);letter-spacing:-.5px}
+h3{font-size:20px}
+p{margin:0;max-width:65ch}
+code{font-family:var(--code);font-size:.88em;color:var(--blue);overflow-wrap:anywhere}
+figure{margin:0}
+.mute{color:var(--mute)}
+.cut{clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+.tag{display:flex;align-items:center;gap:12px;font-size:13px;font-weight:700;letter-spacing:3px;color:var(--pink);text-transform:uppercase}
+.tag b{font-family:var(--display);font-size:15px;color:var(--text)}
+.tag i{font-style:normal;color:var(--blue)}
+
+@keyframes arrive{from{opacity:0;filter:blur(14px);transform:translateY(34px)}to{opacity:1;filter:none;transform:none}}
+.rv.play{animation:arrive .9s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0ms)}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rv.play{animation:none}
+  .marquee .track{animation:none}
+  .beam{display:none}
+}
+
+nav{position:fixed;top:14px;left:0;right:0;z-index:20;pointer-events:none}
+nav .outer{padding:0 14px}
+nav .bar{pointer-events:auto;max-width:1120px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(21,21,28,.86);border:1px solid var(--line);padding:8px 16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:17px;color:var(--text);text-decoration:none}
+.brand svg{width:26px;height:26px}
+nav ul{display:flex;gap:2px 16px;list-style:none;margin:0;padding:0;flex-wrap:wrap}
+nav ul a{color:var(--text);text-decoration:none;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:6px 0;display:inline-block}
+nav ul a:hover{color:var(--pink)}
+
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0 52%,rgba(255,46,154,.16) 52% 60%,transparent 60% 64%,rgba(108,123,255,.16) 64% 69%,transparent 69%);pointer-events:none}
+.hero .wrap{position:relative;display:grid;grid-template-columns:.95fr 1.05fr;gap:44px;align-items:center;padding-top:132px;padding-bottom:68px}
+.badge{display:inline-flex;background:var(--pink);color:#0B0B0F;font-weight:700;font-size:13px;letter-spacing:2px;padding:8px 16px;text-transform:uppercase}
+.hero h1{font-size:clamp(42px,6.6vw,88px);margin-top:20px;letter-spacing:-1.5px}
+.hero h1 span{color:var(--pink)}
+.hero .lead{margin-top:20px;color:var(--mute);font-size:18px}
+.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+.btn{font-family:var(--display);font-weight:700;font-size:16px;text-decoration:none;padding:13px 22px;display:inline-block;border:0;cursor:pointer}
+.btn.solid{background:var(--pink);color:#0B0B0F}
+.btn.solid:hover{background:#fff}
+.btn.ghost{color:var(--text);background:transparent;box-shadow:inset 0 0 0 2px var(--blue)}
+.btn.ghost:hover{background:var(--blue);color:#0B0B0F}
+
+.cam{position:relative;border:2px solid var(--pink);background:var(--panel)}
+.cam .view{position:relative;padding:34px 26px 30px;background-size:cover;image-rendering:pixelated;overflow:hidden}
+.cam .rec{position:absolute;left:12px;top:9px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:8px;z-index:2}
+.cam .rec::before{content:"";width:8px;height:8px;background:var(--pink);border-radius:50%}
+.cam .hintline{position:absolute;right:12px;top:9px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);z-index:2}
+.sheet{position:relative;transform:perspective(1100px) rotateY(-9deg) rotateX(4deg) rotate(-1.5deg);outline:3px solid var(--pink);outline-offset:0;box-shadow:0 26px 60px rgba(0,0,0,.55)}
+.sheet svg{display:block;width:100%;height:auto;background:var(--paper)}
+.sheet .bubble{cursor:pointer}
+.sheet .bubble:focus{outline:none}
+.sheet .bubble:focus-visible .hit{stroke:var(--gold);stroke-width:3}
+.sheet .bubble:hover .rim{stroke:#111}
+.beam{position:absolute;left:0;right:0;top:0;height:16%;background:linear-gradient(180deg,transparent,rgba(255,46,154,.42));border-bottom:2px solid var(--pink);pointer-events:none;opacity:0}
+.beam.run{animation:sweep .7s ease-in-out}
+.beam.first{animation:sweep 1.3s .35s ease-in-out}
+@keyframes sweep{0%{transform:translateY(-100%);opacity:1}100%{transform:translateY(640%);opacity:1}}
+.readout{display:grid;grid-template-columns:auto 1fr auto;gap:14px 20px;align-items:center;padding:14px 18px;border-top:1px solid var(--line)}
+.readout .pts{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;color:var(--ok);font-variant-numeric:tabular-nums}
+.readout .pts small{font-size:12px;letter-spacing:2px;color:var(--mute);display:block;font-family:var(--body);font-weight:700;text-transform:uppercase;margin-bottom:4px}
+.readout button{font-family:var(--body);font-weight:700;font-size:13px;background:transparent;color:var(--text);border:1px solid var(--line);padding:9px 12px;cursor:pointer}
+.readout button:hover{border-color:var(--pink);color:var(--pink)}
+.legend{display:flex;gap:6px 16px;flex-wrap:wrap;padding:0 18px 14px;font-size:12.5px;color:var(--mute)}
+.topics{display:grid;gap:6px;min-width:0}
+.topics div{display:grid;grid-template-columns:78px 1fr 40px;gap:8px;align-items:center;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+.topics i{display:block;height:9px;background:var(--ink);border:1px solid var(--line)}
+.topics i b{display:block;height:100%;background:var(--ok)}
+.duo{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
+.duo .shot{margin-top:0}
+[hidden]{display:none !important}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;border:3px solid;margin-right:6px;vertical-align:-1px}
+
+.marquee{overflow:hidden;border-bottom:1px solid var(--line);background:var(--panel)}
+.marquee .track{display:flex;gap:44px;width:max-content;padding:16px 0;animation:slide 40s linear infinite;font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:2px;text-transform:uppercase;white-space:nowrap}
+.marquee span::after{content:"◆";margin-left:44px;color:var(--pink);font-size:12px;vertical-align:middle}
+@keyframes slide{to{transform:translateX(-50%)}}
+
+section{padding:96px 0;border-bottom:1px solid var(--line)}
+.head{display:flex;flex-direction:column;gap:14px;margin-bottom:40px}
+.head p{color:var(--mute);font-size:17px}
+.manifesto{font-family:var(--display);font-weight:700;font-size:clamp(24px,3.6vw,42px);line-height:1.2;max-width:min(100%,24em)}
+.manifesto em{font-style:normal;color:var(--pink)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:44px}
+.stat{background:var(--panel);padding:22px 18px;border-left:4px solid var(--pink)}
+.stat:nth-child(even){border-left-color:var(--blue)}
+.stat b{font-family:var(--display);font-size:40px;display:block;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{color:var(--mute);font-size:13px;display:block;margin-top:4px}
+
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.card{background:var(--panel);padding:20px;display:grid;gap:8px;align-content:start}
+.card p{color:var(--mute);font-size:15px}
+.card .k{font-size:11px;letter-spacing:2px;color:var(--blue);text-transform:uppercase;font-weight:700}
+.big{font-family:var(--display);font-weight:800;font-size:46px;line-height:1;color:var(--pink)}
+.card:nth-child(even) .big{color:var(--blue)}
+.shot{background:var(--panel);border:1px solid var(--line);margin-top:16px}
+.shot img{width:100%}
+.shot figcaption{font-size:13px;color:var(--mute);padding:10px 12px}
+.sub{margin-top:56px;display:grid;gap:20px}
+.sub h3{font-size:26px}
+
+.pipe{display:grid;gap:0;border-top:1px solid var(--line)}
+.step{display:grid;grid-template-columns:64px 1fr 1.05fr;gap:10px 28px;padding:30px 0;border-bottom:1px solid var(--line);align-items:start}
+.step .no{font-family:var(--display);font-weight:800;font-size:40px;line-height:1;color:var(--pink)}
+.step:nth-child(even) .no{color:var(--blue)}
+.step .say{display:grid;gap:10px}
+.step .say p{color:var(--mute);font-size:15.5px}
+.step .say h3{font-size:24px}
+.step .calls{display:flex;gap:6px;flex-wrap:wrap}
+.step .calls code{background:var(--panel);border:1px solid var(--line);padding:4px 8px;font-size:12.5px}
+.step figure{border:1px solid var(--line);background:var(--panel)}
+.step figcaption{font-size:12.5px;color:var(--mute);padding:8px 10px}
+.rule{width:100%;border-collapse:collapse;font-size:14px;background:var(--panel);border:1px solid var(--line)}
+.rule td,.rule th{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left}
+.rule th{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mute);font-weight:700}
+.rule tr:last-child td{border-bottom:0}
+.rule td:first-child{font-family:var(--code);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rule .hit{color:var(--pink);font-weight:700}
+.rule td:last-child{font-weight:700}
+
+.tw{overflow-x:auto;border:1px solid var(--line)}
+table.data{width:100%;border-collapse:collapse;font-size:14.5px;min-width:560px}
+table.data th,table.data td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+table.data th{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mute);font-weight:700;background:var(--panel)}
+table.data tr:last-child td{border-bottom:0}
+table.data td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+table.data tr.group td{background:var(--panel);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700;padding:8px 14px}
+
+.chart{background:var(--panel);border:1px solid var(--line);padding:18px}
+.chart svg{display:block;width:100%;height:auto}
+.chart .axis{font-family:var(--body);font-size:11px;fill:var(--mute)}
+.chart h3{font-size:20px;margin-bottom:4px}
+.chart .note{font-size:13.5px;color:var(--mute);max-width:none}
+.keyrow{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin:10px 0 6px}
+.keyrow i{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px}
+.slider{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;margin-top:12px}
+.slider label{font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--mute)}
+.slider input{width:100%;accent-color:var(--pink)}
+.slider button{font-family:var(--body);font-weight:700;font-size:13px;background:transparent;color:var(--text);border:1px solid var(--line);padding:8px 12px;cursor:pointer}
+.slider button:hover{border-color:var(--pink);color:var(--pink)}
+.verdict{margin-top:12px;font-size:15px;max-width:none}
+.verdict b{font-family:var(--display);font-size:19px;font-variant-numeric:tabular-nums}
+.verdict .m{color:var(--pink)}
+.verdict .e{color:var(--blue)}
+.callout{border-left:4px solid var(--gold);background:var(--panel);padding:18px 20px;margin-top:16px;display:grid;gap:8px}
+.callout p{color:var(--mute);max-width:75ch}
+.callout b{color:var(--text)}
+ul.plain{margin:0;padding-left:20px;display:grid;gap:8px;color:var(--mute);max-width:65ch}
+ul.plain b{color:var(--text)}
+
+.people{display:grid;grid-template-columns:repeat(2,1fr);gap:0 40px;border-top:1px solid var(--line)}
+.person{display:grid;gap:6px;padding:22px 0;border-bottom:1px solid var(--line)}
+.person h3{font-size:28px}
+.person .role{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700}
+footer{padding:34px 0;color:var(--mute);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:900px){
+  .hero .wrap{grid-template-columns:1fr;padding-top:150px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .grid3{grid-template-columns:1fr}
+  .step{grid-template-columns:48px 1fr}
+  .step figure,.step .rule{grid-column:1 / -1}
+  .people{grid-template-columns:1fr}
+  section{padding:68px 0}
+}
+@media (max-width:560px){
+  .grid2{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr}
+  .readout{grid-template-columns:1fr auto}
+  .topics{grid-column:1 / -1;order:3}
+  .duo{grid-template-columns:1fr}
+  .cam .view{padding:32px 12px 20px}
+  .cam .hintline{display:none}
+  nav ul{gap:0 12px}
+  nav ul a{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<nav aria-label="Main">
+  <div class="outer"><div class="bar cut">
+    <a class="brand" href="#top"><svg viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" fill="#FF2E9A"/><circle cx="13" cy="13" r="7" fill="none" stroke="#0B0B0F" stroke-width="3"/><circle cx="13" cy="13" r="3" fill="#0B0B0F"/></svg>Glance</a>
+    <ul>
+      <li><a href="#problem">Problem</a></li>
+      <li><a href="#solution">Solution</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#results">Results</a></li>
+      <li><a href="#privacy">Privacy</a></li>
+      <li><a href="#team">Team</a></li>
+    </ul>
+  </div></div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <div class="badge cut">VISION.EXE · Neon Synapse 2026</div>
+      <h1>A class's marks, read <span>at a glance.</span></h1>
+      <p class="lead">Glance turns a laptop webcam into a sheet reader for teachers. Hold a filled marks sheet up to the camera and it reads the roll number and every bubble, adds up the total and shows which topics the class is weak in.</p>
+      <div class="cta">
+        <a class="btn solid cut" href="#how">See how it works</a>
+        <a class="btn ghost cut" href="#results">See the test results</a>
+      </div>
+    </div>
+    <div class="cam cut" id="Demo">
+      <div class="view" id="DemoView">
+        <div class="rec">Demo marks sheet</div>
+        <div class="hintline">Tap a bubble to give marks</div>
+        <div class="sheet">
+          <svg id="DemoSheet" viewBox="0 0 420 296" role="group" aria-label="Demo marks sheet with 10 questions, each marked out of 5. Tap a bubble to change the marks and the total updates."></svg>
+          <div class="beam first" id="Beam"></div>
+        </div>
+      </div>
+      <div class="readout">
+        <div class="pts"><small>Total</small><span id="DemoScore" aria-live="polite">25/50</span></div>
+        <div class="topics" id="DemoTopics" aria-hidden="true"></div>
+        <button type="button" id="DemoReset">Reset sheet</button>
+      </div>
+      <div class="legend">
+        <span><i style="border-color:var(--pink)"></i>Marks read</span>
+        <span><i style="border-color:var(--gold)"></i>Two marks in one row, refused</span>
+        <span>Bars show the share of marks earned in each topic</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="marquee" aria-hidden="true"><div class="track">
+  <span>Marks entered once</span><span>Totals at the desk</span><span>Topic-wise class report</span><span>ArUco markers</span><span>findHomography</span><span>warpPerspective</span><span>No trained model</span><span>No frames saved</span>
+  <span>Marks entered once</span><span>Totals at the desk</span><span>Topic-wise class report</span><span>ArUco markers</span><span>findHomography</span><span>warpPerspective</span><span>No trained model</span><span>No frames saved</span>
+</div></div>
+
+<section id="problem">
+  <div class="wrap">
+    <div class="tag rv"><b>01</b><i>//</i>The problem</div>
+    <p class="manifesto rv" style="margin-top:22px">We asked our teacher how marks get recorded. <em>She enters every mark twice, then checks a machine's adding.</em></p>
+    <div class="grid2" style="margin-top:32px">
+      <p class="mute rv">After checking a class's answer copies, she writes the marks for each question on the front page of every copy. Then she fills a bubble sheet with the same marks, question by question. The sheets go to a centre, a machine adds them up, and she checks the machine's totals against her own.</p>
+      <p class="mute rv" style="--d:100ms">She does it for a good reason. Marks kept question by question show which topics the whole class has understood and which it has not, and the same for each student. Glance keeps that benefit and removes the second entry, the trip to the centre and the checking afterwards.</p>
+    </div>
+    <div class="stats">
+      <div class="stat rv"><b>2</b><span>Times every mark is entered by hand today: front page, then bubble sheet</span></div>
+      <div class="stat rv" style="--d:80ms"><b>1</b><span>Time with Glance. The bubble sheet is the record and the total appears at once</span></div>
+      <div class="stat rv" style="--d:160ms"><b>0</b><span>Extra hardware. It uses the laptop's own webcam</span></div>
+      <div class="stat rv" style="--d:240ms"><b id="StatSpeed">25 ms</b><span>To read one camera frame in our stress test</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="solution">
+  <div class="wrap">
+    <div class="head">
+      <div class="tag rv"><b>02</b><i>//</i>What Glance does</div>
+      <h2 class="rv">Bubble the marks once, show the sheet</h2>
+      <p class="rv">One Python program and a sheet of paper. Nothing is sent anywhere, and the teacher sees the result while the copy is still in her hand.</p>
+    </div>
+    <div class="grid3">
+      <div class="card cut rv"><div class="big">1</div><h3>Print the marks sheet</h3><p>A small file lists the paper's questions, the maximum marks for each and its topic. Glance draws a sheet with exactly those rows, two sheets to an A4 page.</p></div>
+      <div class="card cut rv" style="--d:100ms"><div class="big">2</div><h3>Bubble the marks</h3><p>While checking a copy, the teacher fills one bubble per question for the marks given, plus the .5 bubble for a half mark, and the student's roll number.</p></div>
+      <div class="card cut rv" style="--d:200ms"><div class="big">3</div><h3>Show it to the camera</h3><p>Glance reads the sheet, waits until six frames in a row agree, shows every mark it read and the total, saves it and beeps.</p></div>
+    </div>
+    <figure class="shot rv"><img src="app_marks.jpg" width="1280" height="720" alt="The Glance app reading a marks sheet. Pink rings mark each bubble it read. On the right: Test 02, marks, roll number 104, total marks 31.5 out of 60, saved. Below: the marks read for each of the 14 questions." loading="lazy"><figcaption>The app after reading a marks sheet: every mark it read, the total, and the weakest topics so far. This screenshot uses a rendered test shot, not a photo.</figcaption></figure>
+    <div class="grid3" style="margin-top:16px">
+      <div class="card rv"><span class="k">Topic report</span><h3>Where the class is weak</h3><p>Every question belongs to a topic. Glance shows the share of marks the class earned in each topic, updated after every sheet.</p></div>
+      <div class="card rv" style="--d:100ms"><span class="k">Checked on the spot</span><h3>Slips are caught while she holds the copy</h3><p>Two marks in one row are refused, not guessed. Blank rows are flagged. The marks it read stay on screen to compare with the copy.</p></div>
+      <div class="card rv" style="--d:200ms"><span class="k">Ready to upload</span><h3>A marks file per test</h3><p>Roll number, marks for every question and the total, saved as a spreadsheet file on the teacher's laptop.</p></div>
+    </div>
+    <div class="duo">
+      <figure class="shot rv"><img src="app_marks_insight.jpg" width="1280" height="720" alt="The class insight strip for a marks test: five bars for Light, Electricity, Magnetism, Force and Heat, with Force lowest at 42 percent." loading="lazy"><figcaption>Topic report for a sample class of 12 generated sheets.</figcaption></figure>
+      <figure class="shot rv" style="--d:100ms"><img src="app_main.jpg" width="1280" height="720" alt="The Glance app grading a multiple-choice answer sheet, with green rings on correct answers and red on wrong ones, score 24 out of 30." loading="lazy"><figcaption>The same program also grades multiple-choice tests against an answer key.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="head">
+      <div class="tag rv"><b>03</b><i>//</i>How it works</div>
+      <h2 class="rv">Six steps from camera frame to score</h2>
+      <p class="rv">Every step is classic computer vision with OpenCV. There is no trained model to trust blindly, so we can explain every decision the program makes.</p>
+    </div>
+    <div class="pipe">
+      <div class="step rv">
+        <div class="no">1</div>
+        <div class="say"><h3>Find the four corners</h3><p>Each corner of the sheet carries an ArUco marker, a black square with a pattern OpenCV can recognise from any angle. Three of them fix the position and which way up the sheet is. The number of the fourth one is the test number, so the right paper pattern or answer key loads by itself.</p><div class="calls"><code>cv2.aruco.ArucoDetector</code><code>detectMarkers</code></div></div>
+        <figure><img src="step2_markers.jpg" width="880" height="495" alt="A tilted answer sheet with its four corner markers outlined in pink and labelled id 2, id 6, id 8 and id 10" loading="lazy"><figcaption>Detected markers with their corner points. The step pictures use the answer sheet; the marks sheet goes through the same steps.</figcaption></figure>
+      </div>
+      <div class="step rv">
+        <div class="no">2</div>
+        <div class="say"><h3>Flatten the sheet</h3><p>Four markers give 16 corner points. We know where those 16 points sit on the printed page, so OpenCV can work out the homography: the 3 by 3 matrix that undoes the camera's tilt. Warping with it gives a straight, top-down sheet of 1260 by 888 pixels, 6 pixels per millimetre.</p><div class="calls"><code>cv2.findHomography</code><code>cv2.warpPerspective</code></div></div>
+        <figure><img src="step3_flat.jpg" width="880" height="620" alt="The same sheet after flattening: perfectly straight and filling the image" loading="lazy"><figcaption>The same frame after the warp. Every bubble is now at a known pixel.</figcaption></figure>
+      </div>
+      <div class="step rv">
+        <div class="no">3</div>
+        <div class="say"><h3>Cancel the shadows</h3><p>A hand or a tube light puts shadows on the paper, and a shadow looks like pencil. A morphological close wipes out the dark ink and leaves an estimate of how bright the blank paper is at each point. Dividing the image by that estimate removes the shadows and leaves an ink map from 0 (paper) to 1 (black).</p><div class="calls"><code>cv2.morphologyEx</code><code>MORPH_CLOSE</code><code>cv2.GaussianBlur</code></div></div>
+        <figure><img src="step4_dark.jpg" width="880" height="620" alt="The ink map of the sheet: paper is black and all ink glows pink" loading="lazy"><figcaption>The ink map. Bright means ink, whatever the lighting was.</figcaption></figure>
+      </div>
+      <div class="step rv">
+        <div class="no">4</div>
+        <div class="say"><h3>Measure every bubble</h3><p>For each bubble we take the average ink inside the inner 62% of the circle. Staying inside keeps the printed outline out of the measurement. The result is a fill score per bubble: about 0.01 for an empty one, 0.35 to 0.9 for a marked one.</p><div class="calls"><code>cv2.filter2D</code><code>disc kernel</code></div></div>
+        <figure><img src="step5_scores.jpg" width="880" height="620" alt="The flattened sheet with a fill score printed above each marked bubble, for example 86, 57 and 74" loading="lazy"><figcaption>Debug view in the app (press D): fill score times 100 above each bubble.</figcaption></figure>
+      </div>
+      <div class="step rv">
+        <div class="no">5</div>
+        <div class="say"><h3>Decide each row</h3><p>A bubble counts as marked at a fill score of <b id="RuleThreshold">0.28</b> or more. A second bubble in the same row only counts if it is at least 45% as dark as the darkest one, so a rubbed-out mark is ignored. No mark means blank. Two real marks mean the row is rejected, never guessed. On a marks sheet the row's value is the marked number, plus a half if the .5 bubble is filled.</p><div class="calls"><code>Vision.PickOne</code></div></div>
+        <table class="rule">
+          <tr><th>Fill scores A B C D</th><th>Decision</th></tr>
+          <tr><td><span class="hit">0.84</span> 0.02 0.01 0.02</td><td>A</td></tr>
+          <tr><td>0.02 0.03 0.01 0.02</td><td>Blank</td></tr>
+          <tr><td><span class="hit">0.81</span> 0.16 0.02 0.01</td><td>A, erased B ignored</td></tr>
+          <tr><td><span class="hit">0.83</span> <span class="hit">0.49</span> 0.01 0.01</td><td>Two marks, rejected</td></tr>
+        </table>
+      </div>
+      <div class="step rv">
+        <div class="no">6</div>
+        <div class="say"><h3>Wait, then grade</h3><p>One frame can be blurred by a moving hand. Glance averages the fill scores of the last five frames and only accepts a reading once it has stayed the same for six frames in a row. Then it adds up the marks, or compares the answers with the key, and saves the roll number, every row and the total.</p><div class="calls"><code>Tracker.Update</code><code>Vision.Grade</code></div></div>
+        <figure><img src="step6_graded.jpg" width="880" height="495" alt="The graded sheet in the camera view with coloured rings on each answer and the background pixelated" loading="lazy"><figcaption>The graded sheet as the app shows it, with the background pixelated.</figcaption></figure>
+      </div>
+    </div>
+
+    <div class="sub">
+      <h3 class="rv">A decision we tested instead of guessing</h3>
+      <div class="chart rv">
+        <h3>Not every marker survives a blurry webcam</h3>
+        <p class="note">OpenCV's dictionary has 50 markers. We blurred, shrank and darkened each one <span id="MarkerTrials">60</span> times and counted how often it was still found. Marker 0, the obvious first choice, was found only <b id="MarkerZero">67%</b> of the time. Glance uses the markers in pink.</p>
+        <div class="keyrow"><span><i style="background:var(--pink)"></i>Used on the sheet</span><span><i style="background:var(--line)"></i>Not used</span></div>
+        <svg id="MarkerChart" viewBox="0 0 800 200" role="img" aria-label="Bar chart of detection rate under blur for the 50 ArUco markers. The markers used by Glance all score near 100 percent; marker 0 and a few others score much lower."></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="wrap">
+    <div class="head">
+      <div class="tag rv"><b>04</b><i>//</i>Results</div>
+      <h2 class="rv">Tested on <span id="ShotCount">2,000</span> simulated camera shots</h2>
+      <p class="rv">We could not photograph a thousand sheets by hand, so we wrote a simulator. It draws a sheet with random marks or answers in four pen and pencil styles, adds stray dots and rubbed-out marks, then tilts, curls, shades, blurs and JPEG-compresses it like a webcam frame. The grader never sees the correct answers.</p>
+    </div>
+    <div class="stats" style="margin-top:0">
+      <div class="stat rv"><b id="ResFound">995</b><span id="ResFoundLabel">of 1,000 answer sheets found</span></div>
+      <div class="stat rv" style="--d:80ms"><b id="ResWrong">1</b><span id="ResWrongLabel">wrong reading in 32,835 answers and roll digits</span></div>
+      <div class="stat rv" style="--d:160ms"><b id="ResPerfect">994</b><span>sheets read with no mistake at all</span></div>
+      <div class="stat rv" style="--d:240ms"><b id="ResSpeed">25 ms</b><span>median time to read one frame</span></div>
+    </div>
+
+    <div class="chart rv" id="MarksBlock" hidden style="margin-top:16px">
+      <h3>The marks sheet, at its hardest</h3>
+      <p class="note" id="MarksNote"></p>
+      <div class="stats" style="margin-top:14px">
+        <div class="stat"><b id="MarksFound">0</b><span id="MarksFoundLabel">sheets found</span></div>
+        <div class="stat"><b id="MarksWrong">0</b><span id="MarksWrongLabel">wrong readings</span></div>
+        <div class="stat"><b id="MarksPerfect">0</b><span>sheets read with no mistake at all</span></div>
+        <div class="stat"><b id="MarksSpeed">0 ms</b><span>median time to read one frame</span></div>
+      </div>
+    </div>
+
+    <div class="sub" style="margin-top:36px">
+      <h3 class="rv">The answer sheet in detail</h3>
+      <div class="tw rv">
+        <table class="data" id="ResultTable">
+          <thead><tr><th>Condition</th><th>Shots</th><th>Sheets found</th><th>Readings right</th><th>Perfect sheets</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="chart rv">
+        <h3>Why the line sits at 0.28</h3>
+        <p class="note">Every bubble in the test, placed by its fill score. Unmarked bubbles, including stray dots and rubbed-out marks, stay on the left. Marked ones stay on the right. The line sits in the gap between the two groups, clear of the darkest rubbed-out mark. Drag it to see what a different threshold would cost.</p>
+        <div class="keyrow"><span><i style="background:var(--blue)"></i>Unmarked bubbles</span><span><i style="background:var(--pink)"></i>Marked bubbles</span><span>Height is on a log scale: each grid line is 10 times the one below</span></div>
+        <svg id="FillChart" viewBox="0 0 800 280" role="img" aria-label="Histogram of fill scores. Unmarked bubbles cluster below 0.22 and marked bubbles lie above 0.3, with a gap between them where the threshold sits."></svg>
+        <div class="slider">
+          <label for="ThresholdInput">Threshold</label>
+          <input type="range" id="ThresholdInput" min="0.04" max="0.7" step="0.02" value="0.28">
+          <button type="button" id="ThresholdReset">Back to 0.28</button>
+        </div>
+        <p class="verdict" id="Verdict" aria-live="polite"></p>
+      </div>
+
+      <div class="callout rv" id="LivePending">
+        <p><b>What this does not prove.</b> A simulation is not a classroom. Real paper creases, pencil shines under a light and every webcam is different. We also tuned the threshold on earlier simulated runs, so this score is on the generous side. That is why the app has a live test mode: it reads printed sheets with known answers through the real camera and logs every result.</p>
+      </div>
+
+      <div class="chart rv" id="LiveBlock" hidden>
+        <h3>Live camera test</h3>
+        <p class="note" id="LiveNote"></p>
+        <div class="stats" style="margin-top:14px">
+          <div class="stat"><b id="LiveReads">0</b><span>reads through the laptop webcam</span></div>
+          <div class="stat"><b id="LiveRight">0</b><span id="LiveRightLabel">rows read correctly</span></div>
+          <div class="stat"><b id="LivePerfect">0</b><span>reads with no mistake</span></div>
+          <div class="stat"><b id="LiveUnmatched">0</b><span>reads where the roll number was not recognised</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="privacy">
+  <div class="wrap">
+    <div class="head">
+      <div class="tag rv"><b>05</b><i>//</i>Privacy and honest limits</div>
+      <h2 class="rv">What it keeps, and where it fails</h2>
+    </div>
+    <div class="grid2">
+      <div class="card cut rv">
+        <span class="k">What Glance stores</span>
+        <ul class="plain">
+          <li><b>No camera frames.</b> Nothing from the camera is ever written to disk.</li>
+          <li><b>No faces and no names.</b> The screen pixelates everything outside the sheet, and the sheet has no name field.</li>
+          <li><b>Only numbers.</b> Test number, roll number, the marks or answers and the total, in files on the teacher's laptop.</li>
+          <li><b>No internet.</b> The program runs fully offline.</li>
+        </ul>
+      </div>
+      <div class="card cut rv" style="--d:100ms">
+        <span class="k">Where it fails today</span>
+        <ul class="plain">
+          <li><b>All four corner squares must be visible.</b> A thumb over one and the sheet is not read.</li>
+          <li><b>The sheet has to be fairly flat.</b> A strongly curled page shifts the bubbles.</li>
+          <li><b>Very light pencil can fall under the threshold</b> and be read as blank.</li>
+          <li><b>Limits of the sheet:</b> up to 30 rows, marks up to 10 per row, 30 different tests.</li>
+          <li><b>It is a prototype.</b> It does not connect to the school's own marks system yet; it saves a file.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="sub">
+      <h3 class="rv">Sources</h3>
+      <ul class="plain rv">
+        <li><b>OpenCV</b> for all the vision, including its built-in ArUco marker dictionary <code>DICT_4X4_50</code>.</li>
+        <li><b>NumPy</b> for the arithmetic.</li>
+        <li><b>No dataset and no pre-trained model.</b> Nothing was trained, so nothing needed data.</li>
+        <li><b>AI assistance:</b> we used Claude while writing the code and building this website. Every number on this page comes from running the test scripts in our project folder.</li>
+      </ul>
+    </div>
+    <div class="sub">
+      <h3 class="rv">What we would build next</h3>
+      <div class="grid3">
+        <div class="card rv"><h3>A trial with real copies</h3><p>Run one real class test through Glance beside the current process and compare the totals and the time taken.</p></div>
+        <div class="card rv" style="--d:100ms"><h3>Curled and folded sheets</h3><p>Extra markers along the edges would let Glance correct for paper that is not flat.</p></div>
+        <div class="card rv" style="--d:200ms"><h3>A report per student</h3><p>The same topic breakdown for each student, to hand to parents with the result.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <div class="wrap">
+    <div class="head">
+      <div class="tag rv"><b>06</b><i>//</i>Team</div>
+      <h2 class="rv">Who built Glance</h2>
+      <p class="rv">Two students from City Montessori School, Gomti Nagar Extension, Lucknow.</p>
+    </div>
+    <div class="people">
+      <div class="person rv"><div class="role">Team member</div><h3>Arnav Vishwakarma</h3></div>
+      <div class="person rv" style="--d:100ms"><div class="role">Team member</div><h3 id="Teammate">Kumar Dhruv</h3></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Glance · VISION.EXE · NEON SYNAPSE 2026</span>
+    <span>Website built with AI assistance, as the event rules allow.</span>
+  </div>
+</footer>
+
+<script type="application/json" id="SimData">{"Shots":1000,"Seed":2026,"Mode":"choice","Rows":30,"BubblesPerSheet":150,"BubbleRadius":3.0,"FieldsPerSheet":33,"SheetsFound":995,"FieldsRead":32835,"FieldsRight":32834,"PerfectSheets":994,"MedianMilliseconds":25.0,"Tables":{"All":{"All shots":{"Shots":1000,"Found":995,"Right":32834,"Fields":33000,"Perfect":994}},"Tilt":{"15 to 30 deg":{"Shots":372,"Found":370,"Right":12209,"Fields":12276,"Perfect":369},"30 to 40 deg":{"Shots":260,"Found":257,"Right":8481,"Fields":8580,"Perfect":257},"0 to 15 deg":{"Shots":368,"Found":368,"Right":12144,"Fields":12144,"Perfect":368}},"Blur":{"Soft":{"Shots":332,"Found":329,"Right":10856,"Fields":10956,"Perfect":328},"Blurry":{"Shots":348,"Found":346,"Right":11418,"Fields":11484,"Perfect":346},"Sharp":{"Shots":320,"Found":320,"Right":10560,"Fields":10560,"Perfect":320}},"Marks":{"Solid":{"Shots":137,"Found":137,"Right":4521,"Fields":4521,"Perfect":137},"Mixed":{"Shots":395,"Found":393,"Right":12968,"Fields":13035,"Perfect":392},"Partial":{"Shots":151,"Found":150,"Right":4950,"Fields":4983,"Perfect":150},"Pencil":{"Shots":170,"Found":168,"Right":5544,"Fields":5610,"Perfect":168},"Scribble":{"Shots":147,"Found":147,"Right":4851,"Fields":4851,"Perfect":147}},"Size":{"Small in frame":{"Shots":265,"Found":263,"Right":8679,"Fields":8745,"Perfect":263},"Medium in frame":{"Shots":626,"Found":623,"Right":20558,"Fields":20658,"Perfect":622},"Large in frame":{"Shots":109,"Found":109,"Right":3597,"Fields":3597,"Perfect":109}}},"MarkedHistogram":[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,4,6,7,18,50,295,951,1055,1153,1311,1471,1538,1868,1424,1151,1139,1145,1041,949,853,1193,1477,1341,1227,1079,905,821,215,0,0,0,0],"EmptyHistogram":[69908,13192,202,69,1553,90,329,429,398,384,104,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Threshold":0.28,"OpenCv":"5.0.0"}</script>
+<script type="application/json" id="MarksData">{"Shots":1000,"Seed":2027,"Mode":"marks","Rows":20,"BubblesPerSheet":270,"BubbleRadius":2.21,"FieldsPerSheet":23,"SheetsFound":994,"FieldsRead":22862,"FieldsRight":22862,"PerfectSheets":994,"MedianMilliseconds":37.9,"Tables":{"All":{"All shots":{"Shots":1000,"Found":994,"Right":22862,"Fields":23000,"Perfect":994}},"Tilt":{"0 to 15 deg":{"Shots":378,"Found":378,"Right":8694,"Fields":8694,"Perfect":378},"15 to 30 deg":{"Shots":363,"Found":360,"Right":8280,"Fields":8349,"Perfect":360},"30 to 40 deg":{"Shots":259,"Found":256,"Right":5888,"Fields":5957,"Perfect":256}},"Blur":{"Blurry":{"Shots":352,"Found":348,"Right":8004,"Fields":8096,"Perfect":348},"Soft":{"Shots":334,"Found":334,"Right":7682,"Fields":7682,"Perfect":334},"Sharp":{"Shots":314,"Found":312,"Right":7176,"Fields":7222,"Perfect":312}},"Marks":{"Mixed":{"Shots":397,"Found":395,"Right":9085,"Fields":9131,"Perfect":395},"Scribble":{"Shots":142,"Found":142,"Right":3266,"Fields":3266,"Perfect":142},"Partial":{"Shots":166,"Found":164,"Right":3772,"Fields":3818,"Perfect":164},"Pencil":{"Shots":167,"Found":166,"Right":3818,"Fields":3841,"Perfect":166},"Solid":{"Shots":128,"Found":127,"Right":2921,"Fields":2944,"Perfect":127}},"Size":{"Small in frame":{"Shots":250,"Found":247,"Right":5681,"Fields":5750,"Perfect":247},"Medium in frame":{"Shots":635,"Found":632,"Right":14536,"Fields":14605,"Perfect":632},"Large in frame":{"Shots":115,"Found":115,"Right":2645,"Fields":2645,"Perfect":115}}},"MarkedHistogram":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,1,10,44,264,836,872,854,993,940,1149,1197,1070,917,1144,1293,1266,1246,1089,1227,1104,981,854,793,689,579,97,0,0,0,0],"EmptyHistogram":[108638,67160,20438,3259,403,845,321,269,263,295,135,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Threshold":0.28,"OpenCv":"5.0.0"}</script>
+<script type="application/json" id="MarkerData">{"Trials":60,"Rates":{"2":1.0,"6":1.0,"8":1.0,"10":1.0,"13":1.0,"15":1.0,"17":1.0,"21":1.0,"22":1.0,"23":1.0,"26":1.0,"29":1.0,"30":1.0,"31":1.0,"33":1.0,"37":1.0,"38":1.0,"40":1.0,"41":1.0,"43":1.0,"45":1.0,"49":1.0,"3":0.9833333333333333,"4":0.9833333333333333,"5":0.9833333333333333,"7":0.9833333333333333,"16":0.9833333333333333,"18":0.9833333333333333,"24":0.9833333333333333,"25":0.9833333333333333,"32":0.9833333333333333,"42":0.9833333333333333,"48":0.9833333333333333,"1":0.9666666666666667,"44":0.9666666666666667,"36":0.95,"39":0.9333333333333333,"11":0.9166666666666666,"46":0.9166666666666666,"19":0.9,"20":0.9,"34":0.9,"9":0.8833333333333333,"27":0.8833333333333333,"28":0.8333333333333334,"35":0.8333333333333334,"12":0.7666666666666667,"14":0.7166666666666667,"0":0.6666666666666666,"47":0.5833333333333334},"WorstId":47,"WorstRate":0.5833333333333334,"MarkerZeroRate":0.6666666666666666,"Used":[2,6,8,10,13,15,17,21,22,23,26,29,30,31,33,37,38,40,41,43,45,49,3,4,5,7,16,18,24,25,32,42,48],"UsedLowest":0.9833333333333333,"OpenCv":"5.0.0"}</script>
+<script type="application/json" id="LiveData">null</script>
+<script>
+const Sim = JSON.parse(document.getElementById("SimData").textContent);
+const MarksSim = JSON.parse(document.getElementById("MarksData").textContent);
+const Markers = JSON.parse(document.getElementById("MarkerData").textContent);
+const Live = JSON.parse(document.getElementById("LiveData").textContent);
+const SvgSpace = "http://www.w3.org/2000/svg";
+const ReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function Make(Name, Attributes, Parent) {
+  const Node = document.createElementNS(SvgSpace, Name);
+  for (const Key in Attributes) Node.setAttribute(Key, Attributes[Key]);
+  if (Parent) Parent.appendChild(Node);
+  return Node;
+}
+
+function Write(Id, Value) {
+  document.getElementById(Id).textContent = Value;
+}
+
+function Count(Value) {
+  return Value.toLocaleString("en-IN");
+}
+
+const DemoTopics = ["Light", "Light", "Light", "Electricity", "Electricity", "Electricity", "Electricity", "Force", "Force", "Force"];
+const DemoStart = [[4], [3], [5], [2], [1], [2, 4], [3], [], [1], [2]];
+const DemoHighest = 5;
+const DemoSheet = document.getElementById("DemoSheet");
+const DemoMeters = document.getElementById("DemoTopics");
+const Beam = document.getElementById("Beam");
+let DemoMarks = DemoStart.map((Marks) => new Set(Marks));
+const DemoBubbles = [];
+const DemoBars = {};
+
+function DrawMarker(X, Y, Bits) {
+  Make("rect", { x: X, y: Y, width: 36, height: 36, fill: "#111" }, DemoSheet);
+  Bits.forEach((Row, RowIndex) => {
+    [...Row].forEach((Bit, ColumnIndex) => {
+      if (Bit === "1") Make("rect", { x: X + 6 + ColumnIndex * 6, y: Y + 6 + RowIndex * 6, width: 6.2, height: 6.2, fill: "#F6F5F1" }, DemoSheet);
+    });
+  });
+}
+
+function BuildDemo() {
+  DrawMarker(12, 12, ["0110", "0010", "1010", "1101"]);
+  DrawMarker(372, 12, ["1011", "1001", "0111", "0100"]);
+  DrawMarker(12, 248, ["1100", "0101", "0110", "1011"]);
+  DrawMarker(372, 248, ["0111", "0101", "0101", "1100"]);
+  const Title = Make("text", { x: 62, y: 34, "font-family": "Funnel Display, Arial Black, sans-serif", "font-weight": 800, "font-size": 21, fill: "#111" }, DemoSheet);
+  Title.textContent = "GLANCE";
+  const Subtitle = Make("text", { x: 62, y: 47, "font-family": "Sora, sans-serif", "font-weight": 700, "font-size": 7.5, fill: "#777", "letter-spacing": 1 }, DemoSheet);
+  Subtitle.textContent = "MARKS SHEET / DEMO";
+  const Hold = Make("text", { x: 210, y: 276, "text-anchor": "middle", "font-family": "Sora, sans-serif", "font-weight": 700, "font-size": 7.5, fill: "#888", "letter-spacing": 1 }, DemoSheet);
+  Hold.textContent = "HOLD THE SHEET HERE";
+
+  [58, 232].forEach((Left) => {
+    for (let Mark = 0; Mark <= DemoHighest; Mark++) {
+      const Head = Make("text", { x: Left + 32 + Mark * 23, y: 72, "text-anchor": "middle", "font-family": "Sora, sans-serif", "font-weight": 700, "font-size": 9, fill: "#777" }, DemoSheet);
+      Head.textContent = Mark;
+    }
+  });
+
+  for (let Question = 0; Question < 10; Question++) {
+    const Left = Question < 5 ? 58 : 232;
+    const Y = 94 + (Question % 5) * 32;
+    const Number = Make("text", { x: Left + 14, y: Y + 3.5, "text-anchor": "end", "font-family": "Sora, sans-serif", "font-weight": 700, "font-size": 10, fill: "#111" }, DemoSheet);
+    Number.textContent = Question + 1;
+    const Row = [];
+    for (let Mark = 0; Mark <= DemoHighest; Mark++) {
+      const X = Left + 32 + Mark * 23;
+      const Group = Make("g", { class: "bubble", role: "checkbox", tabindex: 0, "aria-label": `Question ${Question + 1}, ${Mark} marks` }, DemoSheet);
+      Make("circle", { class: "hit", cx: X, cy: Y, r: 11.5, fill: "transparent" }, Group);
+      const Ring = Make("circle", { cx: X, cy: Y, r: 10.4, fill: "none", "stroke-width": 2.6 }, Group);
+      Make("circle", { class: "rim", cx: X, cy: Y, r: 7.4, fill: "none", stroke: "#8A8A8A", "stroke-width": 1 }, Group);
+      const Fill = Make("circle", { cx: X, cy: Y, r: 6.5, fill: "#26262C" }, Group);
+      const Toggle = () => {
+        const Marks = DemoMarks[Question];
+        if (Marks.has(Mark)) Marks.delete(Mark);
+        else Marks.add(Mark);
+        GradeDemo();
+        Sweep();
+      };
+      Group.addEventListener("click", Toggle);
+      Group.addEventListener("keydown", (Event) => {
+        if (Event.key === " " || Event.key === "Enter") {
+          Event.preventDefault();
+          Toggle();
+        }
+      });
+      Row.push({ Group, Ring, Fill });
+    }
+    DemoBubbles.push(Row);
+  }
+
+  [...new Set(DemoTopics)].forEach((Topic) => {
+    const Line = document.createElement("div");
+    const Name = document.createElement("span");
+    Name.textContent = Topic;
+    const Track = document.createElement("i");
+    const Bar = document.createElement("b");
+    Track.appendChild(Bar);
+    const Value = document.createElement("span");
+    Line.append(Name, Track, Value);
+    DemoMeters.appendChild(Line);
+    DemoBars[Topic] = { Bar, Value };
+  });
+}
+
+function GradeDemo() {
+  let Total = 0;
+  const Earned = {};
+  const Possible = {};
+  DemoBubbles.forEach((Row, Question) => {
+    const Marks = DemoMarks[Question];
+    const Clash = Marks.size > 1;
+    const Got = Marks.size === 1 ? [...Marks][0] : 0;
+    Total += Got;
+    const Topic = DemoTopics[Question];
+    Earned[Topic] = (Earned[Topic] || 0) + Got;
+    Possible[Topic] = (Possible[Topic] || 0) + DemoHighest;
+    Row.forEach((Bubble, Mark) => {
+      const Marked = Marks.has(Mark);
+      Bubble.Fill.setAttribute("opacity", Marked ? 1 : 0);
+      Bubble.Group.setAttribute("aria-checked", Marked ? "true" : "false");
+      Bubble.Ring.setAttribute("stroke", !Marked ? "none" : Clash ? "#E0A100" : "#E0247F");
+    });
+  });
+  Write("DemoScore", `${Total}/${DemoBubbles.length * DemoHighest}`);
+  for (const Topic in DemoBars) {
+    const Share = Earned[Topic] / Possible[Topic];
+    DemoBars[Topic].Bar.style.width = `${100 * Share}%`;
+    DemoBars[Topic].Bar.style.background = Share >= 0.7 ? "#4ADE80" : Share >= 0.5 ? "#FFC83D" : "#FF5454";
+    DemoBars[Topic].Value.textContent = `${Math.round(100 * Share)}%`;
+  }
+}
+
+function Sweep() {
+  if (ReducedMotion) return;
+  Beam.classList.remove("first", "run");
+  void Beam.offsetWidth;
+  Beam.classList.add("run");
+}
+
+function PaintBackdrop() {
+  const Canvas = document.createElement("canvas");
+  Canvas.width = 30;
+  Canvas.height = 22;
+  const Context = Canvas.getContext("2d");
+  let Seed = 263;
+  const Next = () => {
+    Seed = (Seed * 1664525 + 1013904223) % 4294967296;
+    return Seed / 4294967296;
+  };
+  for (let Y = 0; Y < Canvas.height; Y++) {
+    for (let X = 0; X < Canvas.width; X++) {
+      const Glow = Math.max(0, 1 - Math.hypot(X - 6, Y - 16) / 13) * 44 + Math.max(0, 1 - Math.hypot(X - 25, Y - 4) / 11) * 34;
+      const Shade = 26 + Next() * 12;
+      Context.fillStyle = `rgb(${Shade + Glow * 0.9},${Shade - 4 + Glow * 0.25},${Shade + 10 + Glow})`;
+      Context.fillRect(X, Y, 1, 1);
+    }
+  }
+  document.getElementById("DemoView").style.backgroundImage = `url(${Canvas.toDataURL()})`;
+}
+
+function FillResults() {
+  const Fields = Sim.FieldsRead;
+  const Wrong = Fields - Sim.FieldsRight;
+  Write("ShotCount", Count(Sim.Shots + (MarksSim ? MarksSim.Shots : 0)));
+  if (MarksSim) {
+    const MarksWrong = MarksSim.FieldsRead - MarksSim.FieldsRight;
+    document.getElementById("MarksBlock").hidden = false;
+    Write("MarksNote", `${Count(MarksSim.Shots)} shots of the most crowded sheet Glance can print: ${MarksSim.Rows} questions, marks from 0 to 10 with half marks, ${MarksSim.BubblesPerSheet} bubbles of ${MarksSim.BubbleRadius} mm radius. A paper with fewer rows or lower maximum marks gets bigger bubbles.`);
+    Write("MarksFound", Count(MarksSim.SheetsFound));
+    Write("MarksFoundLabel", `of ${Count(MarksSim.Shots)} marks sheets found`);
+    Write("MarksWrong", Count(MarksWrong));
+    Write("MarksWrongLabel", `wrong reading${MarksWrong === 1 ? "" : "s"} in ${Count(MarksSim.FieldsRead)} rows and roll digits`);
+    Write("MarksPerfect", Count(MarksSim.PerfectSheets));
+    Write("MarksSpeed", `${Math.round(MarksSim.MedianMilliseconds)} ms`);
+  }
+  Write("ResFound", Count(Sim.SheetsFound));
+  Write("ResFoundLabel", `of ${Count(Sim.Shots)} answer sheets found`);
+  Write("ResWrong", Count(Wrong));
+  Write("ResWrongLabel", `wrong reading${Wrong === 1 ? "" : "s"} in ${Count(Fields)} answers and roll digits`);
+  Write("ResPerfect", Count(Sim.PerfectSheets));
+  Write("ResSpeed", `${Math.round(Sim.MedianMilliseconds)} ms`);
+  Write("StatSpeed", `${Math.round(Sim.MedianMilliseconds)} ms`);
+  Write("RuleThreshold", Sim.Threshold.toFixed(2));
+
+  const Groups = [
+    ["Tilt of the sheet", "Tilt", ["0 to 15 deg", "15 to 30 deg", "30 to 40 deg"], ["0 to 15 degrees", "15 to 30 degrees", "30 to 40 degrees"]],
+    ["Focus", "Blur", ["Sharp", "Soft", "Blurry"], ["Sharp", "Slightly soft", "Blurry"]],
+    ["How the bubbles were filled", "Marks", ["Solid", "Pencil", "Scribble", "Partial", "Mixed"], ["Solid pen", "Light pencil", "Scribbled", "Partly filled", "Mixed on one sheet"]],
+    ["Size in the frame", "Size", ["Large in frame", "Medium in frame", "Small in frame"], ["Large", "Medium", "Small"]],
+  ];
+  const Body = document.querySelector("#ResultTable tbody");
+  Groups.forEach(([Title, Key, Names, Labels]) => {
+    const Head = Body.insertRow();
+    Head.className = "group";
+    const HeadCell = Head.insertCell();
+    HeadCell.colSpan = 5;
+    HeadCell.textContent = Title;
+    Names.forEach((Name, Index) => {
+      const Row = Sim.Tables[Key][Name];
+      if (!Row) return;
+      const Read = Row.Found * Sim.FieldsPerSheet;
+      const Line = Body.insertRow();
+      const Cells = [Labels[Index], Count(Row.Shots), Count(Row.Found), `${Count(Row.Right)} of ${Count(Read)}`, Count(Row.Perfect)];
+      Cells.forEach((Text, CellIndex) => {
+        const Cell = Line.insertCell();
+        Cell.textContent = Text;
+        if (CellIndex > 0) Cell.className = "num";
+      });
+    });
+  });
+}
+
+function DrawFillChart() {
+  const Chart = document.getElementById("FillChart");
+  const Left = 66, Right = 786, Top = 12, Base = 236;
+  const Bins = Sim.MarkedHistogram.length;
+  const Peak = Math.max(...Sim.EmptyHistogram, ...Sim.MarkedHistogram);
+  const Decades = Math.ceil(Math.log10(Peak));
+  const Height = (Value) => (Value <= 0 ? 0 : ((Math.log10(Value) + 0.35) / (Decades + 0.35)) * (Base - Top));
+  const Step = (Right - Left) / Bins;
+
+  for (let Decade = 0; Decade <= Decades; Decade++) {
+    const Y = Base - Height(10 ** Decade);
+    Make("line", { x1: Left, x2: Right, y1: Y, y2: Y, stroke: "#2B2B38", "stroke-width": 1 }, Chart);
+    const Tick = Make("text", { class: "axis", x: Left - 8, y: Y + 4, "text-anchor": "end" }, Chart);
+    Tick.textContent = Count(10 ** Decade);
+  }
+  for (let Mark = 0; Mark <= 10; Mark += 2) {
+    const Tick = Make("text", { class: "axis", x: Left + (Mark / 10) * (Right - Left), y: Base + 18, "text-anchor": "middle" }, Chart);
+    Tick.textContent = (Mark / 10).toFixed(1);
+  }
+  const AxisName = Make("text", { class: "axis", x: (Left + Right) / 2, y: Base + 38, "text-anchor": "middle" }, Chart);
+  AxisName.textContent = "Fill score";
+
+  for (let Bin = 0; Bin < Bins; Bin++) {
+    const X = Left + Bin * Step;
+    const Empty = Height(Sim.EmptyHistogram[Bin]);
+    const Marked = Height(Sim.MarkedHistogram[Bin]);
+    if (Empty > 0) Make("rect", { x: X + 1, y: Base - Empty, width: Step - 2, height: Empty, fill: "#6C7BFF" }, Chart);
+    if (Marked > 0) Make("rect", { x: X + 1, y: Base - Marked, width: Step - 2, height: Marked, fill: "#FF2E9A", opacity: Empty > 0 ? 0.85 : 1 }, Chart);
+  }
+  Make("line", { x1: Left, x2: Right, y1: Base, y2: Base, stroke: "#A9A9B8", "stroke-width": 1 }, Chart);
+  const Needle = Make("line", { y1: Top - 6, y2: Base + 4, stroke: "#FFC83D", "stroke-width": 2.5 }, Chart);
+
+  const Input = document.getElementById("ThresholdInput");
+  const TotalMarked = Sim.MarkedHistogram.reduce((Sum, Value) => Sum + Value, 0);
+  const TotalEmpty = Sim.EmptyHistogram.reduce((Sum, Value) => Sum + Value, 0);
+  const Update = () => {
+    const Threshold = Number(Input.value);
+    const Edge = Math.round(Threshold * Bins);
+    const Missed = Sim.MarkedHistogram.slice(0, Edge).reduce((Sum, Value) => Sum + Value, 0);
+    const Phantom = Sim.EmptyHistogram.slice(Edge).reduce((Sum, Value) => Sum + Value, 0);
+    const X = Left + Edge * Step;
+    Needle.setAttribute("x1", X);
+    Needle.setAttribute("x2", X);
+    document.getElementById("Verdict").innerHTML = `At a threshold of <b>${Threshold.toFixed(2)}</b>: <b class="m">${Count(Missed)}</b> of ${Count(TotalMarked)} marked bubbles would be missed, and <b class="e">${Count(Phantom)}</b> of ${Count(TotalEmpty)} unmarked bubbles would be counted as marks.`;
+  };
+  Input.addEventListener("input", Update);
+  document.getElementById("ThresholdReset").addEventListener("click", () => {
+    Input.value = Sim.Threshold;
+    Update();
+  });
+  Input.value = Sim.Threshold;
+  Update();
+}
+
+function DrawMarkerChart() {
+  const Chart = document.getElementById("MarkerChart");
+  const Left = 46, Right = 786, Top = 14, Base = 160;
+  const Step = (Right - Left) / 50;
+  [0, 50, 100].forEach((Percent) => {
+    const Y = Base - (Percent / 100) * (Base - Top);
+    Make("line", { x1: Left, x2: Right, y1: Y, y2: Y, stroke: "#2B2B38", "stroke-width": 1 }, Chart);
+    const Tick = Make("text", { class: "axis", x: Left - 8, y: Y + 4, "text-anchor": "end" }, Chart);
+    Tick.textContent = `${Percent}%`;
+  });
+  const Used = new Set(Markers.Used);
+  for (let Id = 0; Id < 50; Id++) {
+    const Rate = Markers.Rates[String(Id)];
+    const Tall = Math.max(Rate * (Base - Top), 1);
+    Make("rect", { x: Left + Id * Step + 2, y: Base - Tall, width: Step - 4, height: Tall, fill: Used.has(Id) ? "#FF2E9A" : "#4A4A5E" }, Chart);
+    if (Id % 5 === 0) {
+      const Tick = Make("text", { class: "axis", x: Left + Id * Step + Step / 2, y: Base + 16, "text-anchor": "middle" }, Chart);
+      Tick.textContent = Id;
+    }
+  }
+  const AxisName = Make("text", { class: "axis", x: (Left + Right) / 2, y: Base + 34, "text-anchor": "middle" }, Chart);
+  AxisName.textContent = "Marker number";
+  Write("MarkerTrials", Markers.Trials);
+  Write("MarkerZero", `${Math.round(Markers.MarkerZeroRate * 100)}%`);
+}
+
+function ShowLive() {
+  if (!Live || !Live.Reads) return;
+  document.getElementById("LiveBlock").hidden = false;
+  Write("LiveNote", `Printed sheets with known answers, held up to the laptop webcam by hand on ${Live.Date}. Every read was logged by the app's test mode.`);
+  Write("LiveReads", Count(Live.Reads));
+  Write("LiveRight", Count(Live.AnswersRight));
+  Write("LiveRightLabel", `of ${Count(Live.AnswersRead)} rows read correctly`);
+  Write("LivePerfect", Count(Live.PerfectReads));
+  Write("LiveUnmatched", Count(Live.Unmatched));
+}
+
+function WatchScroll() {
+  if (ReducedMotion || !("IntersectionObserver" in window)) return;
+  const Fold = window.innerHeight;
+  const Watcher = new IntersectionObserver((Entries) => {
+    Entries.forEach((Entry) => {
+      if (!Entry.isIntersecting) return;
+      Entry.target.classList.add("play");
+      Watcher.unobserve(Entry.target);
+    });
+  }, { rootMargin: "0px 0px 60px 0px" });
+  document.querySelectorAll(".rv").forEach((Node) => {
+    if (Node.getBoundingClientRect().top > Fold) Watcher.observe(Node);
+  });
+}
+
+BuildDemo();
+GradeDemo();
+PaintBackdrop();
+FillResults();
+DrawFillChart();
+DrawMarkerChart();
+ShowLive();
+WatchScroll();
+document.getElementById("DemoReset").addEventListener("click", () => {
+  DemoMarks = DemoStart.map((Marks) => new Set(Marks));
+  GradeDemo();
+  Sweep();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+	"2": {
+		"Name": "Sample science paper",
+		"Half": true,
+		"Questions": [
+			{"Label": "1", "Max": 3, "Topic": "Light"},
+			{"Label": "2", "Max": 3, "Topic": "Light"},
+			{"Label": "3", "Max": 4, "Topic": "Light"},
+			{"Label": "4", "Max": 3, "Topic": "Electricity"},
+			{"Label": "5", "Max": 3, "Topic": "Electricity"},
+			{"Label": "6", "Max": 4, "Topic": "Electricity"},
+			{"Label": "7", "Max": 3, "Topic": "Magnetism"},
+			{"Label": "8", "Max": 3, "Topic": "Magnetism"},
+			{"Label": "9", "Max": 4, "Topic": "Magnetism"},
+			{"Label": "10", "Max": 5, "Topic": "Force"},
+			{"Label": "11", "Max": 5, "Topic": "Force"},
+			{"Label": "12", "Max": 5, "Topic": "Heat"},
+			{"Label": "13", "Max": 5, "Topic": "Heat"},
+			{"Label": "14", "Max": 10, "Topic": "Electricity"}
+		]
+	}
+}

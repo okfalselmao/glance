@@ -1,0 +1,237 @@
+{
+	"Shots": 1000,
+	"Seed": 2027,
+	"Mode": "marks",
+	"Rows": 20,
+	"BubblesPerSheet": 270,
+	"BubbleRadius": 2.21,
+	"FieldsPerSheet": 23,
+	"SheetsFound": 994,
+	"FieldsRead": 22862,
+	"FieldsRight": 22862,
+	"PerfectSheets": 994,
+	"MedianMilliseconds": 37.9,
+	"Tables": {
+		"All": {
+			"All shots": {
+				"Shots": 1000,
+				"Found": 994,
+				"Right": 22862,
+				"Fields": 23000,
+				"Perfect": 994
+			}
+		},
+		"Tilt": {
+			"0 to 15 deg": {
+				"Shots": 378,
+				"Found": 378,
+				"Right": 8694,
+				"Fields": 8694,
+				"Perfect": 378
+			},
+			"15 to 30 deg": {
+				"Shots": 363,
+				"Found": 360,
+				"Right": 8280,
+				"Fields": 8349,
+				"Perfect": 360
+			},
+			"30 to 40 deg": {
+				"Shots": 259,
+				"Found": 256,
+				"Right": 5888,
+				"Fields": 5957,
+				"Perfect": 256
+			}
+		},
+		"Blur": {
+			"Blurry": {
+				"Shots": 352,
+				"Found": 348,
+				"Right": 8004,
+				"Fields": 8096,
+				"Perfect": 348
+			},
+			"Soft": {
+				"Shots": 334,
+				"Found": 334,
+				"Right": 7682,
+				"Fields": 7682,
+				"Perfect": 334
+			},
+			"Sharp": {
+				"Shots": 314,
+				"Found": 312,
+				"Right": 7176,
+				"Fields": 7222,
+				"Perfect": 312
+			}
+		},
+		"Marks": {
+			"Mixed": {
+				"Shots": 397,
+				"Found": 395,
+				"Right": 9085,
+				"Fields": 9131,
+				"Perfect": 395
+			},
+			"Scribble": {
+				"Shots": 142,
+				"Found": 142,
+				"Right": 3266,
+				"Fields": 3266,
+				"Perfect": 142
+			},
+			"Partial": {
+				"Shots": 166,
+				"Found": 164,
+				"Right": 3772,
+				"Fields": 3818,
+				"Perfect": 164
+			},
+			"Pencil": {
+				"Shots": 167,
+				"Found": 166,
+				"Right": 3818,
+				"Fields": 3841,
+				"Perfect": 166
+			},
+			"Solid": {
+				"Shots": 128,
+				"Found": 127,
+				"Right": 2921,
+				"Fields": 2944,
+				"Perfect": 127
+			}
+		},
+		"Size": {
+			"Small in frame": {
+				"Shots": 250,
+				"Found": 247,
+				"Right": 5681,
+				"Fields": 5750,
+				"Perfect": 247
+			},
+			"Medium in frame": {
+				"Shots": 635,
+				"Found": 632,
+				"Right": 14536,
+				"Fields": 14605,
+				"Perfect": 632
+			},
+			"Large in frame": {
+				"Shots": 115,
+				"Found": 115,
+				"Right": 2645,
+				"Fields": 2645,
+				"Perfect": 115
+			}
+		}
+	},
+	"MarkedHistogram": [
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		1,
+		0,
+		0,
+		0,
+		0,
+		2,
+		1,
+		10,
+		44,
+		264,
+		836,
+		872,
+		854,
+		993,
+		940,
+		1149,
+		1197,
+		1070,
+		917,
+		1144,
+		1293,
+		1266,
+		1246,
+		1089,
+		1227,
+		1104,
+		981,
+		854,
+		793,
+		689,
+		579,
+		97,
+		0,
+		0,
+		0,
+		0
+	],
+	"EmptyHistogram": [
+		108638,
+		67160,
+		20438,
+		3259,
+		403,
+		845,
+		321,
+		269,
+		263,
+		295,
+		135,
+		10,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0
+	],
+	"Threshold": 0.28,
+	"OpenCv": "5.0.0"
+}
